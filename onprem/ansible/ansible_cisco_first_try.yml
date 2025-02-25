@@ -1,0 +1,14 @@
+---
+- name: Show IP interface brief on Cisco Device
+  hosts: wosmOnpremSwitch
+  gather_facts: no
+  tasks:
+    - name: Run show ip interface brief command
+      ios_command:
+        commands:
+          - show ip interface brief
+      register: result
+
+    - name: Display result
+      debug:
+        var: result.stdout

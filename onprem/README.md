@@ -32,8 +32,22 @@ transport input ssh
 login local
 ```
 
-**Nun kann verbunden werden**
+**Mit SSH verbinden**
 
 ```bash
 ssh -o KexAlgorithms=+diffie-hellman-group1-sha1 -o Ciphers=+aes128-cbc -o MACs=+hmac-sha1 -o HostKeyAlgorithms=+ssh-rsa admin@192.168.1.10
+```
+
+**Ansible Playbook ausführen**
+
+1. Stelle sicher, dass die Ansible Cisco Modules installiert sind:
+
+```bash
+ansible-galaxy collection install cisco.ios
+```
+
+2. Playbooks werden dann wie folgt ausgeführt: 
+
+```bash
+ansible-playbook -i inventory.yml <playbook-name>.yml
 ```
