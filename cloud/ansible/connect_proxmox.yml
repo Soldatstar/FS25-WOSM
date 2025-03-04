@@ -1,0 +1,21 @@
+---
+- name: Install and configure Proxmox
+  hosts: 
+  - ZH-node01
+  become: true
+  remote_user: debian
+
+
+  tasks:
+
+    - name: Initialize Proxmox cluster
+      shell: |
+        pvecm create CLOUD-CLUSTER
+      ignore_errors: yes
+
+    - name: Join other nodes to cluster
+      shell: |
+        pvecm add {{ hostvars[item].private_ip }}
+      with_items:
+        - ZH-node02
+        - ZH-node03
