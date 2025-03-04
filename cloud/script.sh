@@ -12,42 +12,54 @@ REGIONS=("ZH" "LS")
 
 # Function to generate dynamic Ansible inventory file
 generate_inventory() {
-    declare -A floating_ips
-    declare -A private_ips
-    
-    for region in "${REGIONS[@]}"; do
-        cd "$TERRAFORM_DIR/$region" || exit
-        terraform apply -refresh-only
-    
-        # Get outputs for current region
-        floating_ips["$region"]=$(terraform output -json nodes_floating_ips_nodes | jq -r '.[]')
-        private_ips["$region"]=$(terraform output -json private_ips_nodes | jq -r '.[]')
-    done
 
-    cd "$BASE_DIR"
+    # Clear the inventory file before writing new content
+    > "$INVENTORY_FILE"
 
-    # Start inventory file
+    # Start inventory file with the base structure
     cat <<EOF > "$INVENTORY_FILE"
 all:
   children:
 EOF
 
-    # Create entries for each region
     for region in "${REGIONS[@]}"; do
-        readarray -t region_floating <<< "${floating_ips[$region]}"
-        readarray -t region_private <<< "${private_ips[$region]}"
-        
+        cd "$TERRAFORM_DIR/$region" || exit
+        yes yes | terraform apply -refresh-only
+
+        # Get outputs for current region
+        readarray -t ceph_floating < <(terraform output -json floating_ips_ceph | jq -r '.[]')
+        readarray -t ceph_private < <(terraform output -json private_ips_ceph | jq -r '.[]')
+        readarray -t node_floating < <(terraform output -json nodes_floating_ips_nodes | jq -r '.[]')
+        readarray -t node_private < <(terraform output -json private_ips_nodes | jq -r '.[]')
+
+        cd "$BASE_DIR"
+
+        # Write Ceph entries for the region
+        cat <<EOF >> "$INVENTORY_FILE"
+    ${region}_ceph:
+      hosts:
+EOF
+        for i in "${!ceph_floating[@]}"; do
+            node_num=$(printf "%02d" $((i+1)))
+            cat <<EOF >> "$INVENTORY_FILE"
+        ${region}-osd${node_num}:
+          ansible_host: ${ceph_floating[$i]}
+          private_ip: ${ceph_private[$i]}
+          ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+EOF
+        done
+
+        # Write Node entries for the region
         cat <<EOF >> "$INVENTORY_FILE"
     ${region}_nodes:
       hosts:
 EOF
-
-        for i in "${!region_floating[@]}"; do
+        for i in "${!node_floating[@]}"; do
             node_num=$(printf "%02d" $((i+1)))
             cat <<EOF >> "$INVENTORY_FILE"
-        ${region}-Node${node_num}:
-          ansible_host: ${region_floating[$i]}
-          private_ip: ${region_private[$i]}
+        ${region}-node${node_num}:
+          ansible_host: ${node_floating[$i]}
+          private_ip: ${node_private[$i]}
           ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
 EOF
         done
@@ -55,6 +67,8 @@ EOF
 
     echo "Inventory file generated at $INVENTORY_FILE"
 }
+
+# ... [Rest of the script remains unchanged until the apply_and_deploy function]
 
 # Option 1: Apply Terraform and run Ansible playbooks
 apply_and_deploy() {
@@ -66,15 +80,20 @@ apply_and_deploy() {
         terraform apply -auto-approve
     done
 
+    # Generate inventory after Terraform applies
     generate_inventory
 
-    # Check all servers
+    # Check all servers (updated to check both Ceph and Nodes)
     for region in "${REGIONS[@]}"; do
         cd "$TERRAFORM_DIR/$region" || exit
-        floating_ips_k8s=$(terraform output -json floating_ips_k8s | jq -r '.[]')
-        readarray -t region_floating <<< "$floating_ips_k8s"
-        
-        for ip in "${region_floating[@]}"; do
+        # Check Ceph nodes
+        readarray -t ceph_floating < <(terraform output -json floating_ips_ceph | jq -r '.[]')
+        for ip in "${ceph_floating[@]}"; do
+            check_server "$ip"
+        done
+        # Check regular nodes
+        readarray -t node_floating < <(terraform output -json nodes_floating_ips_nodes | jq -r '.[]')
+        for ip in "${node_floating[@]}"; do
             check_server "$ip"
         done
     done

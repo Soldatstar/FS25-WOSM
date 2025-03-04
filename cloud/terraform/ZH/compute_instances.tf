@@ -1,20 +1,20 @@
 variable "instance_names" {
   type    = list(string)
-  default = ["Node01", "Node02","Node03","Node04","Node05"]
+  default = ["Node01","Node02","Node03"]
 }
 
-resource "openstack_blockstorage_volume_v3" "root_volumes" {
+resource "openstack_blockstorage_volume_v3" "root_volumes_compute" {
   for_each = toset(var.instance_names)
 
   name              = "${var.REGION}-${each.key}-root-volume"
-  size              = 80  
-  description       = "80GB root volume for ${var.REGION}-${each.key}"
+  size              = 40  
+  description       = "40GB root volume for ${var.REGION}-${each.key}"
   availability_zone = "nova"
   image_id          = data.openstack_images_image_v2.debian12.id  # Use the dynamic image ID
 }
 
 
-resource "openstack_compute_instance_v2" "storage_instances" {
+resource "openstack_compute_instance_v2" "compute_instances" {
   for_each = toset(var.instance_names)
 
   name        = "${var.REGION}-${each.key}"
@@ -29,7 +29,7 @@ resource "openstack_compute_instance_v2" "storage_instances" {
   }
 
   block_device {
-    uuid                  = openstack_blockstorage_volume_v3.root_volumes[each.key].id
+    uuid                  = openstack_blockstorage_volume_v3.root_volumes_compute[each.key].id
     source_type           = "volume"
     destination_type      = "volume"
     boot_index            = 0
@@ -55,7 +55,7 @@ resource "openstack_networking_floatingip_v2" "nodes_floating_ips" {
 data "openstack_networking_port_v2" "nodes_ports" {
   for_each = toset(var.instance_names)
 
-  fixed_ip = openstack_compute_instance_v2.storage_instances[each.key].access_ip_v4
+  fixed_ip = openstack_compute_instance_v2.compute_instances[each.key].access_ip_v4
 }
 
 resource "openstack_networking_floatingip_associate_v2" "fip_Hassoc" {
@@ -70,5 +70,5 @@ output "nodes_floating_ips_nodes" {
 }
 
 output "private_ips_nodes" {
-  value = [for instance in openstack_compute_instance_v2.storage_instances : instance.network[0].fixed_ip_v4]
+  value = [for instance in openstack_compute_instance_v2.compute_instances : instance.network[0].fixed_ip_v4]
 }
