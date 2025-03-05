@@ -52,7 +52,7 @@ resource "openstack_compute_instance_v2" "storage_instances" {
       source_type           = "volume"
       destination_type      = "volume"
       boot_index            = 1
-      delete_on_termination = false
+      delete_on_termination = true
     }
   }
 

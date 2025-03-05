@@ -1,7 +1,6 @@
 ---
 - name: Install Ceph on all nodes
   hosts: 
-  - ZH_ceph
   - LS_ceph
   become: true
   remote_user: debian
@@ -12,7 +11,7 @@
         state: present
 
 - name: Bootstrap Ceph Cluster and Add Public Key to OSDs
-  hosts: ZH-osd01
+  hosts: LS-monitor01
   become: true
   remote_user: debian
   tasks:
@@ -37,21 +36,21 @@
       when: ceph_pub_key.stdout is defined
       delegate_to: "{{ item }}"
       with_items:
-        - ZH-osd02
         - LS-osd01
         - LS-osd02
+        - LS-osd03
 
 - name: Füge OSD Hosts zum Cluster hinzu
-  hosts: ZH-osd01
+  hosts: LS-monitor01
   become: true
   remote_user: debian
   tasks:
     - name: Füge OSD Hosts zum Cluster hinzu
-      command: cephadm shell -- ceph orch host add {{ item }} {{ hostvars[item].ansible_host if item.startswith('LS') else hostvars[item].private_ip }}
+      command: cephadm shell -- ceph orch host add {{ item }} {{ hostvars[item].private_ip }}
       with_items:
-        - ZH-osd02
         - LS-osd01
         - LS-osd02
+        - LS-osd03
 
     - name: Warte drei Minuten
       pause:

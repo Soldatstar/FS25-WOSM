@@ -8,7 +8,8 @@ TERRAFORM_DIR="$BASE_DIR/terraform"
 ANSIBLE_DIR="$BASE_DIR/ansible"
 INVENTORY_FILE="$ANSIBLE_DIR/inventory.yml"
 # Regions to process
-REGIONS=("ZH" "LS")
+#REGIONS=("ZH" "LS")
+REGIONS=("ZH")
 
 # Function to generate dynamic Ansible inventory file
 generate_inventory() {
@@ -26,47 +27,89 @@ EOF
         cd "$TERRAFORM_DIR/$region" || exit
         yes yes | terraform apply -refresh-only
 
-        # Get outputs for current region
-        readarray -t ceph_floating < <(terraform output -json floating_ips_ceph | jq -r '.[]')
-        readarray -t ceph_private < <(terraform output -json private_ips_ceph | jq -r '.[]')
-        readarray -t node_floating < <(terraform output -json nodes_floating_ips_nodes | jq -r '.[]')
-        readarray -t node_private < <(terraform output -json private_ips_nodes | jq -r '.[]')
+        # Attempt to get outputs for current region, ignoring errors if output doesn't exist
+        ceph_floating_output=$(terraform output -json floating_ips_ceph 2>/dev/null)
+        ceph_private_output=$(terraform output -json private_ips_ceph 2>/dev/null)
+        node_floating_output=$(terraform output -json nodes_floating_ips_nodes 2>/dev/null)
+        node_private_output=$(terraform output -json private_ips_nodes 2>/dev/null)
+
+        # Convert outputs to arrays if they are available
+        if [[ -n "$ceph_floating_output" && "$ceph_floating_output" != "null" ]]; then
+            readarray -t ceph_floating < <(echo "$ceph_floating_output" | jq -r '.[]')
+            readarray -t ceph_private < <(echo "$ceph_private_output" | jq -r '.[]')
+        else
+            ceph_floating=()
+            ceph_private=()
+        fi
+
+        if [[ -n "$node_floating_output" && "$node_floating_output" != "null" ]]; then
+            readarray -t node_floating < <(echo "$node_floating_output" | jq -r '.[]')
+            readarray -t node_private < <(echo "$node_private_output" | jq -r '.[]')
+        else
+            node_floating=()
+            node_private=()
+        fi
 
         cd "$BASE_DIR"
 
-        # Write Ceph entries for the region
-        cat <<EOF >> "$INVENTORY_FILE"
+        # Write Ceph entries if available
+        if [ ${#ceph_floating[@]} -gt 0 ]; then
+            cat <<EOF >> "$INVENTORY_FILE"
     ${region}_ceph:
       hosts:
 EOF
-        for i in "${!ceph_floating[@]}"; do
-            node_num=$(printf "%02d" $((i+1)))
-            cat <<EOF >> "$INVENTORY_FILE"
-        ${region}-osd${node_num}:
+            for i in "${!ceph_floating[@]}"; do
+                if [ "$region" == "LS" ]; then
+                    if [ "$i" -eq 0 ]; then
+                        host_name="LS-monitor01"
+                    else
+                        # For OSDs, start numbering from 1 (i==1 becomes osd01, etc.)
+                        osd_num=$(printf "%02d" "$i")
+                        host_name="LS-osd${osd_num}"
+                    fi
+                else
+                    # Default naming if region is not LS
+                    node_num=$(printf "%02d" $((i+1)))
+                    host_name="${region}-osd${node_num}"
+                fi
+
+                cat <<EOF >> "$INVENTORY_FILE"
+        ${host_name}:
           ansible_host: ${ceph_floating[$i]}
           private_ip: ${ceph_private[$i]}
           ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
 EOF
-        done
+            done
+        fi
 
-        # Write Node entries for the region
-        cat <<EOF >> "$INVENTORY_FILE"
+        # Write Node entries if available
+        if [ ${#node_floating[@]} -gt 0 ]; then
+            cat <<EOF >> "$INVENTORY_FILE"
     ${region}_nodes:
       hosts:
 EOF
-        for i in "${!node_floating[@]}"; do
-            node_num=$(printf "%02d" $((i+1)))
-            cat <<EOF >> "$INVENTORY_FILE"
-        ${region}-node${node_num}:
+            for i in "${!node_floating[@]}"; do
+                node_num=$(printf "%02d" $((i+1)))
+                if [ "$region" == "ZH" ]; then
+                    host_name="ZH-Node${node_num}"
+                else
+                    host_name="${region}-node${node_num}"
+                fi
+
+                cat <<EOF >> "$INVENTORY_FILE"
+        ${host_name}:
           ansible_host: ${node_floating[$i]}
           private_ip: ${node_private[$i]}
           ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
 EOF
-        done
+            done
+        fi
+
     done
 
     echo "Inventory file generated at $INVENTORY_FILE"
 }
+
 
 # ... [Rest of the script remains unchanged until the apply_and_deploy function]
 

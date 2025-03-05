@@ -1,120 +1,123 @@
 ---
-- name: Install and configure Proxmox
-  hosts: all
-  become: true
-  remote_user: debian
-  vars:
-    root_password: "cloud2024"  # Set your desired root password
+  - name: Install and configure Proxmox
+    hosts:
+    - ZH_nodes
+    become: true
+    remote_user: debian
+    vars:
+      root_password: "cloud2024"  # Set your desired root password
 
-  tasks:
-    # Vorbereitung
-    - name: Update package cache
-      apt:
-        update_cache: yes
+    tasks:
+      # Vorbereitung
+      - name: Update package cache
+        apt:
+          update_cache: yes
 
-    - name: Perform a full system upgrade
-      apt:
-        upgrade: dist
+      - name: Perform a full system upgrade
+        apt:
+          upgrade: dist
 
-    - name: Install basic tools
-      apt:
-        name:
-          - nano
-          - wget
-        state: present
+      - name: Install basic tools
+        apt:
+          name:
+            - nano
+            - wget
+          state: present
 
-    # Hosts-Datei korrigieren
-    - name: Configure /etc/hosts with private IPs
-      blockinfile:
-        path: /etc/hosts
-        block: |
-          127.0.0.1 localhost
-          {{ private_ip }} {{ inventory_hostname }}
-        marker: "# {mark} ANSIBLE MANAGED BLOCK"
+      # Correct /etc/hosts: add all ZH_nodes with their private IPs
+      - name: Configure /etc/hosts with cluster private IPs
+        blockinfile:
+          path: /etc/hosts
+          block: |
+            127.0.0.1 localhost
+            {% for host in groups['ZH_nodes']|sort %}
+            {{ hostvars[host].private_ip }} {{ host }}
+            {% endfor %}
+          marker: "# {mark} ANSIBLE MANAGED BLOCK"
 
-    - name: Add Proxmox GPG key
-      get_url:
-        url: https://enterprise.proxmox.com/debian/proxmox-release-bookworm.gpg
-        dest: /etc/apt/trusted.gpg.d/proxmox-release-bookworm.gpg
-        mode: 0644
+      - name: Add Proxmox GPG key
+        get_url:
+          url: https://enterprise.proxmox.com/debian/proxmox-release-bookworm.gpg
+          dest: /etc/apt/trusted.gpg.d/proxmox-release-bookworm.gpg
+          mode: 0644
 
-    # Repository Setup
-    - name: Add Proxmox repository
-      apt_repository:
-        repo: "deb [arch=amd64] http://download.proxmox.com/debian/pve bookworm pve-no-subscription"
-        state: present
-        filename: pve-install-repo.list
+      # Repository Setup
+      - name: Add Proxmox repository
+        apt_repository:
+          repo: "deb [arch=amd64] http://download.proxmox.com/debian/pve bookworm pve-no-subscription"
+          state: present
+          filename: pve-install-repo.list
 
 
 
-    # System Update
-    - name: Update repositories
-      apt:
-        update_cache: yes
+      # System Update
+      - name: Update repositories
+        apt:
+          update_cache: yes
 
-    - name: Full system upgrade
-      apt:
-        upgrade: dist
+      - name: Full system upgrade
+        apt:
+          upgrade: dist
 
-    # Kernel Installation
-    - name: Install Proxmox kernel
-      apt:
-        name: proxmox-default-kernel
-        state: present
+      # Kernel Installation
+      - name: Install Proxmox kernel
+        apt:
+          name: proxmox-default-kernel
+          state: present
 
-    - name: First reboot for kernel activation
-      reboot:
-        msg: "Rebooting to activate Proxmox kernel"
-        reboot_timeout: 300
+      - name: First reboot for kernel activation
+        reboot:
+          msg: "Rebooting to activate Proxmox kernel"
+          reboot_timeout: 300
 
-    # Proxmox VE Installation
-    - name: Install Proxmox VE packages
-      apt:
-        name:
-          - proxmox-ve
-          - postfix
-          - open-iscsi
-          - chrony
-        state: present
+      # Proxmox VE Installation
+      - name: Install Proxmox VE packages
+        apt:
+          name:
+            - proxmox-ve
+            - postfix
+            - open-iscsi
+            - chrony
+          state: present
 
-    # Postfix Configuration
-    - name: Configure Postfix (Local Only)
-      debconf:
-        name: postfix
-        question: postfix/main_mailer_type
-        value: "'local only'"
-        vtype: string
+      # Postfix Configuration
+      - name: Configure Postfix (Local Only)
+        debconf:
+          name: postfix
+          question: postfix/main_mailer_type
+          value: "'local only'"
+          vtype: string
 
-    # Cleanup Debian Kernel
-    - name: Remove Debian kernels
-      shell: |
-        apt remove -y linux-image-amd64 'linux-image-6.1*'
-        update-grub
+      # Cleanup Debian Kernel
+      - name: Remove Debian kernels
+        shell: |
+          apt remove -y linux-image-amd64 'linux-image-6.1*'
+          update-grub
 
-    - name: Remove os-prober
-      apt:
-        name: os-prober
-        state: absent
+      - name: Remove os-prober
+        apt:
+          name: os-prober
+          state: absent
 
-    # Additional Fixes
-    - name: Disable cloud-init host updates
-      lineinfile:
-        path: /etc/cloud/cloud.cfg
-        regexp: '^ - update_etc_hosts$'
-        line: '# - update_etc_hosts'
-    #sets hashed pw for root (cloud2024)
-    - name: Set root password
-      user:
-        name: root
-        password: "$6$rounds=4096$upVGZOyJ9iPVL3Rd$VTduT71qXEiFN5afUoA.NZmuGEn81Koou/dJoNYwHqNPBcY65RJbi4q.5htyutH.w3d6.zBLq75olIKOo57Om/"
+      # Additional Fixes
+      - name: Disable cloud-init host updates
+        lineinfile:
+          path: /etc/cloud/cloud.cfg
+          regexp: '^ - update_etc_hosts$'
+          line: '# - update_etc_hosts'
+      #sets hashed pw for root (cloud2024)
+      - name: Set root password
+        user:
+          name: root
+          password: "$6$rounds=4096$upVGZOyJ9iPVL3Rd$VTduT71qXEiFN5afUoA.NZmuGEn81Koou/dJoNYwHqNPBcY65RJbi4q.5htyutH.w3d6.zBLq75olIKOo57Om/"
 
-    - name: Clean ifupdown2 lockfile
-      file:
-        path: /tmp/.ifupdown2-first-install
-        state: absent
+      - name: Clean ifupdown2 lockfile
+        file:
+          path: /tmp/.ifupdown2-first-install
+          state: absent
 
-  post_tasks:
-    - name: Final reboot
-      reboot:
-        msg: "Final reboot after Proxmox installation"
-        reboot_timeout: 300
+    post_tasks:
+      - name: Final reboot
+        reboot:
+          msg: "Final reboot after Proxmox installation"
+          reboot_timeout: 300

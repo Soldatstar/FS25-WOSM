@@ -1,7 +1,6 @@
 ---
 - name: Update all Docker Swarm instances & install docker
   hosts:
-  - ZH_ceph
   - LS_ceph
   become: true
   remote_user: debian

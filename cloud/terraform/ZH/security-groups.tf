@@ -34,3 +34,13 @@ resource "openstack_networking_secgroup_rule_v2" "ingress_ipv6" {
   port_range_max    = 22
   remote_ip_prefix  = "::/0"
 }
+
+resource "openstack_networking_secgroup_rule_v2" "proxmox_webui" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  security_group_id = openstack_networking_secgroup_v2.security_group.id
+  protocol          = "tcp"
+  port_range_min    = 8006
+  port_range_max    = 8006
+  remote_ip_prefix  = "0.0.0.0/0"
+}

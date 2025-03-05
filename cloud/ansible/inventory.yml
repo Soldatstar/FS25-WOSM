@@ -1,50 +1,16 @@
 all:
   children:
-    ZH_ceph:
-      hosts:
-        ZH-osd01:
-          ansible_host: 86.119.48.250
-          private_ip: 10.0.5.41
-          ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
-        ZH-osd02:
-          ansible_host: 86.119.48.209
-          private_ip: 10.0.7.168
-          ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
     ZH_nodes:
       hosts:
-        ZH-node01:
-          ansible_host: 86.119.48.218
-          private_ip: 10.0.5.254
+        ZH-Node01:
+          ansible_host: 86.119.48.209
+          private_ip: 10.0.9.210
           ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
-        ZH-node02:
-          ansible_host: 86.119.48.101
-          private_ip: 10.0.9.109
+        ZH-Node02:
+          ansible_host: 86.119.49.147
+          private_ip: 10.0.5.108
           ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
-        ZH-node03:
-          ansible_host: 86.119.48.206
-          private_ip: 10.0.8.254
-          ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
-    LS_ceph:
-      hosts:
-        LS-osd01:
-          ansible_host: 86.119.29.42
-          private_ip: 10.0.1.235
-          ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
-        LS-osd02:
-          ansible_host: 86.119.29.96
-          private_ip: 10.0.4.128
-          ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
-    LS_nodes:
-      hosts:
-        LS-node01:
-          ansible_host: 86.119.29.95
-          private_ip: 10.0.5.116
-          ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
-        LS-node02:
-          ansible_host: 86.119.29.159
-          private_ip: 10.0.5.160
-          ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
-        LS-node03:
-          ansible_host: 86.119.29.242
-          private_ip: 10.0.0.235
+        ZH-Node03:
+          ansible_host: 86.119.48.75
+          private_ip: 10.0.5.220
           ansible_ssh_common_args: '-o StrictHostKeyChecking=no'

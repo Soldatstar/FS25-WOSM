@@ -1,21 +1,86 @@
 ---
-- name: Install and configure Proxmox
-  hosts: 
-  - ZH-node01
-  become: true
-  remote_user: debian
+  # - name: register SSH key for root on ZH-Node01
+  #   hosts: ZH-Node01
+  #   become: true
+  #   remote_user: debian
+  #   tasks:
+  #     - name: Read public SSH key
+  #       command: cat /root/.ssh/id_rsa.pub
+  #       register: root_ssh_key
+
+  # - name: Distribute root SSH key to all Proxmox nodes
+  #   hosts: ZH_nodes
+  #   become: true
+  #   remote_user: debian
+  #   tasks:
+  #     - name: Ensure root's .ssh directory exists
+  #       file:
+  #         path: /root/.ssh
+  #         state: directory
+  #         mode: '0700'
+
+  #     - name: Copy public key to authorized_keys
+  #       lineinfile:
+  #         path: /root/.ssh/authorized_keys
+  #         line: "{{ hostvars['ZH-Node01'].root_ssh_key.stdout }}"
+  #         create: yes
+  #         mode: '0600'
+
+  # - name: Initialize Proxmox cluster on primary node (ZH-Node01)
+  #   hosts: ZH-Node01
+  #   become: true
+  #   remote_user: debian
+  #   tasks:
+  #     - name: Initialize Proxmox cluster
+  #       shell: pvecm create WOSM-Cluster
+  #       ignore_errors: yes
+
+  #     - name: Pause to allow cluster initialization to settle
+  #       pause:
+  #         seconds: 60   # Adjust the wait time as needed
+  - name: Accept SSH host key for ZH-Node01 on all nodes
+    hosts: ZH_nodes
+    remote_user: debian
+    become: true
+    tasks:
+      - name: Ensure known_hosts file exists
+        file:
+          path: /root/.ssh/known_hosts
+          state: touch
+          mode: '0600'
+
+      - name: Add ZH-Node01 to known_hosts
+        shell: ssh-keyscan -H {{ hostvars['ZH-Node01'].private_ip }} >> /root/.ssh/known_hosts
+        args:
+          creates: /root/.ssh/known_hosts
 
 
-  tasks:
+  # - name: Join secondary nodes (ZH-Node02 and ZH-Node03) to the Proxmox cluster
+  #   hosts:
+  #     - ZH-Node02
+  #     - ZH-Node03
+  #   become: true
+  #   remote_user: debian
+  #   tasks:
+  #     - name: Join Proxmox cluster using primary node
+  #       command: >
+  #         pvecm add {{ hostvars['ZH-Node01'].private_ip }} --use_ssh
+  #       register: join_result
+  #       changed_when: "'successfully added' in join_result.stdout"
 
-    - name: Initialize Proxmox cluster
-      shell: |
-        pvecm create CLOUD-CLUSTER
-      ignore_errors: yes
+  #     - name: Print join output
+  #       debug:
+  #         var: join_result.stdout
 
-    - name: Join other nodes to cluster
-      shell: |
-        pvecm add {{ hostvars[item].private_ip }}
-      with_items:
-        - ZH-node02
-        - ZH-node03
+  # - name: Verify Proxmox cluster status
+  #   hosts: ZH-Node01
+  #   become: true
+  #   remote_user: debian
+  #   tasks:
+  #     - name: Run pvecm status
+  #       command: pvecm status
+  #       register: cluster_status
+
+  #     - name: Print cluster status
+  #       debug:
+  #         var: cluster_status.stdout
