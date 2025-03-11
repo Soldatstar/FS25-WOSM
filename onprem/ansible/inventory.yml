@@ -1,7 +1,7 @@
 all:
   hosts:
     wosmOnpremSwitch:
-      ansible_host: 192.168.1.10
+      ansible_host: 10.0.0.10
       ansible_user: admin
       ansible_password: admin
       ansible_network_os: ios

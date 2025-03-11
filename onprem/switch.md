@@ -5,7 +5,7 @@
 
 **Linux Client**
 
-1. Setze die IP-Adresse auf 192.168.1.15.
+1. Setze die IP-Adresse auf 10.0.0.10.
 2. Greife über USB-Consolen Kabel auf die Switch zu:
 
 ```bash
@@ -17,7 +17,7 @@ sudo screen /dev/ttyUSB0
 
 ```
 interface Vlan1
-ip address 192.168.1.10 255.255.255.0
+ip address 10.0.0.10 255.255.255.0
 no shutdown
 
 hostname wosmOnpremSwitch
@@ -35,7 +35,7 @@ login local
 **Mit SSH verbinden**
 
 ```bash
-ssh -o KexAlgorithms=+diffie-hellman-group1-sha1 -o Ciphers=+aes128-cbc -o MACs=+hmac-sha1 -o HostKeyAlgorithms=+ssh-rsa admin@192.168.1.10
+ssh -o KexAlgorithms=+diffie-hellman-group1-sha1 -o Ciphers=+aes128-cbc -o MACs=+hmac-sha1 -o HostKeyAlgorithms=+ssh-rsa admin@10.0.0.10
 ```
 
 **Ansible Playbook ausführen**
