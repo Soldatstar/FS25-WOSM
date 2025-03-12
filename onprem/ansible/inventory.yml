@@ -2,8 +2,8 @@ all:
   hosts:
     wosmOnpremSwitch:
       ansible_host: 10.0.0.10
-      ansible_user: admin
-      ansible_password: admin
+      ansible_user: damjan
+      ansible_password: damjan
       ansible_network_os: ios
       ansible_connection: network_cli
       ansible_ssh_common_args: '-o KexAlgorithms=+diffie-hellman-group1-sha1 -o Ciphers=+aes128-cbc -o MACs=+hmac-sha1 -o HostKeyAlgorithms=+ssh-rsa'
