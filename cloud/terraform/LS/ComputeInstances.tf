@@ -4,8 +4,9 @@ variable "compute_instances" {
     flavor_id = string
   }))
   default = {
-    "Node01" = { flavor_id = "4" },  # m1.large
-    "Node02" = { flavor_id = "4" },  # m1.large
+    "MediaServer" = { flavor_id = "4" },  # m1.large
+    "MonitoringServer" = { flavor_id = "3" },  # m1.medium
+    "WebServer" = { flavor_id = "3" },  # m1.medium
   }
 }
 
@@ -38,8 +39,14 @@ resource "openstack_compute_instance_v2" "compute_instances" {
   #security_groups = [openstack_networking_secgroup_v2.security_group.name]
 
   network {
+    name = "private"
+  }
+
+  network {
     name = openstack_networking_network_v2.private_network.name
   }
+
+
 
   # Root volume (boot device)
   block_device {
@@ -64,3 +71,27 @@ resource "openstack_compute_instance_v2" "compute_instances" {
   }
 }
 
+resource "openstack_networking_floatingip_v2" "nodes_floating_ips" {
+  for_each = var.compute_instances
+  pool     = "public"
+}
+
+data "openstack_networking_port_v2" "nodes_ports" {
+  for_each = var.compute_instances
+  fixed_ip = openstack_compute_instance_v2.compute_instances[each.key].access_ip_v4
+}
+
+resource "openstack_networking_floatingip_associate_v2" "fip_assoc" {
+  for_each    = var.compute_instances
+  floating_ip = openstack_networking_floatingip_v2.nodes_floating_ips[each.key].address
+  port_id     = data.openstack_networking_port_v2.nodes_ports[each.key].id
+}
+
+# Combined outputs
+output "nodes_floating_ips_nodes" {
+  value = { for k, v in openstack_networking_floatingip_v2.nodes_floating_ips : k => v.address }
+}
+
+output "private_ips_nodes" {
+  value = { for k, v in openstack_compute_instance_v2.compute_instances : k => v.network[0].fixed_ip_v4 }
+}
