@@ -1,43 +1,52 @@
-# Combined compute instances configuration
+
+# Compute instances configuration
 variable "compute_instances" {
   type = map(object({
     flavor_id = string
+    network   = string  
   }))
   default = {
-    "MediaServer" = { flavor_id = "4" },  # m1.large
-    "MonitoringServer" = { flavor_id = "3" },  # m1.medium
-    "WebServer" = { flavor_id = "3" },  # m1.medium
+    "MediaServer" = {
+      flavor_id = "4",
+      network   = "private"
+    },
+    "MonitoringServer" = {
+      flavor_id = "3",
+      network   = "mgmt"
+    },
+    "WebServer" = {
+      flavor_id = "3",
+      network   = "dmz"
+    }
   }
+}
+
+# Create ports on the correct network for each instance
+locals {
+  network_map = {
+    "private" = openstack_networking_network_v2.private_network.id
+    "mgmt"    = openstack_networking_network_v2.mgmt_network.id
+    "dmz"     = openstack_networking_network_v2.dmz_network.id
+  }
+}
+
+resource "openstack_networking_port_v2" "compute_ports" {
+  for_each = var.compute_instances
+
+  name                  = "${var.REGION}-${each.key}-port"
+  network_id            = local.network_map[each.value.network]
+  port_security_enabled = false
 }
 
 resource "openstack_blockstorage_volume_v3" "root_volumes_compute" {
   for_each = var.compute_instances
 
   name              = "${var.REGION}-${each.key}-root-volume"
-  size              = 50  
+  size              = 50
   description       = "50GB root volume for ${var.REGION}-${each.key}"
   availability_zone = "nova"
   image_id          = data.openstack_images_image_v2.debian12.id
   volume_type       = "ceph-ssd"
-}
-
-/* resource "openstack_blockstorage_volume_v3" "additional_volumes_compute" {
-  for_each = var.compute_instances
-
-  name              = "${var.REGION}-${each.key}-data-volume"
-  size              = 100
-  description       = "100GB additional volume for ${var.REGION}-${each.key}"
-  availability_zone = "nova"
-}
- */
-
-
- resource "openstack_networking_port_v2" "compute_private_ports" {
-  for_each = var.compute_instances
-
-  name                  = "${var.REGION}-${each.key}-private-port"
-  network_id            = openstack_networking_network_v2.private_network.id
-  port_security_enabled = false  # Disable port security
 }
 
 resource "openstack_compute_instance_v2" "compute_instances" {
@@ -46,19 +55,18 @@ resource "openstack_compute_instance_v2" "compute_instances" {
   name        = "${var.REGION}-${each.key}"
   flavor_id   = each.value.flavor_id
   key_pair    = var.SSH_KEYPAIR
-  #security_groups = [openstack_networking_secgroup_v2.security_group.name]
 
+  # Public network, floating IP
   network {
-    name = "private"
+    name = "private"  
   }
 
+  # Dedicated network interface, main infrastructure network
   network {
-    port = openstack_networking_port_v2.compute_private_ports[each.key].id
+    port = openstack_networking_port_v2.compute_ports[each.key].id
   }
-  
 
-
-  # Root volume (boot device)
+  # Root volume configuration
   block_device {
     uuid                  = openstack_blockstorage_volume_v3.root_volumes_compute[each.key].id
     source_type           = "volume"
@@ -67,41 +75,29 @@ resource "openstack_compute_instance_v2" "compute_instances" {
     delete_on_termination = true
   }
 
-/*   # Additional data volume
-  block_device {
-    uuid                  = openstack_blockstorage_volume_v3.additional_volumes_compute[each.key].id
-    source_type           = "volume"
-    destination_type      = "volume"
-    boot_index            = 1
-    delete_on_termination = true  # Set to false if you want to persist the volume after instance deletion
-  } */
-
   lifecycle {
     ignore_changes = [key_pair]
   }
 }
 
+# Floating IPs for compute instances
 resource "openstack_networking_floatingip_v2" "nodes_floating_ips" {
   for_each = var.compute_instances
   pool     = "public"
 }
 
-data "openstack_networking_port_v2" "nodes_ports" {
-  for_each = var.compute_instances
-  fixed_ip = openstack_compute_instance_v2.compute_instances[each.key].access_ip_v4
-}
-
-resource "openstack_networking_floatingip_associate_v2" "fip_assoc" {
+# Floating IP association (simplified)
+resource "openstack_compute_floatingip_associate_v2" "fip_assoc" {
   for_each    = var.compute_instances
   floating_ip = openstack_networking_floatingip_v2.nodes_floating_ips[each.key].address
-  port_id     = data.openstack_networking_port_v2.nodes_ports[each.key].id
+  instance_id = openstack_compute_instance_v2.compute_instances[each.key].id
 }
 
-# Combined outputs
+# Updated outputs
 output "nodes_floating_ips_nodes" {
   value = { for k, v in openstack_networking_floatingip_v2.nodes_floating_ips : k => v.address }
 }
 
 output "private_ips_nodes" {
-  value = { for k, v in openstack_compute_instance_v2.compute_instances : k => v.network[0].fixed_ip_v4 }
+  value = { for k, v in openstack_compute_instance_v2.compute_instances : k => v.network[1].fixed_ip_v4 }
 }
