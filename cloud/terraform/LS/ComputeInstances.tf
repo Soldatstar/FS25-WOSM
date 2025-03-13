@@ -30,6 +30,16 @@ resource "openstack_blockstorage_volume_v3" "root_volumes_compute" {
   availability_zone = "nova"
 }
  */
+
+
+ resource "openstack_networking_port_v2" "compute_private_ports" {
+  for_each = var.compute_instances
+
+  name                  = "${var.REGION}-${each.key}-private-port"
+  network_id            = openstack_networking_network_v2.private_network.id
+  port_security_enabled = false  # Disable port security
+}
+
 resource "openstack_compute_instance_v2" "compute_instances" {
   for_each = var.compute_instances
 
@@ -43,9 +53,9 @@ resource "openstack_compute_instance_v2" "compute_instances" {
   }
 
   network {
-    name = openstack_networking_network_v2.private_network.name
+    port = openstack_networking_port_v2.compute_private_ports[each.key].id
   }
-
+  
 
 
   # Root volume (boot device)

@@ -31,6 +31,7 @@ resource "openstack_compute_instance_v2" "opnsense" {
   network {
     name = openstack_networking_network_v2.private_network.name
     fixed_ip_v4 = "192.168.0.1"
+  
   }
 
   block_device {
