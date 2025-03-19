@@ -42,3 +42,48 @@ resource "openstack_networking_subnet_v2" "dmz_subnet" {
   enable_dhcp     = false
   no_gateway      = true
 }
+
+# ======================================
+# Transfer Networks (Bridge Connections)
+# ======================================
+resource "openstack_networking_network_v2" "transfer_private" {
+  name           = "transfer-private"
+  admin_state_up = "true"
+}
+
+resource "openstack_networking_subnet_v2" "transfer_private_subnet" {
+  name            = "transfer-private-subnet"
+  network_id      = openstack_networking_network_v2.transfer_private.id
+  cidr            = "192.168.100.0/24"
+  ip_version      = 4
+  enable_dhcp     = false
+  no_gateway      = true
+}
+
+resource "openstack_networking_network_v2" "transfer_mgmt" {
+  name           = "transfer-mgmt"
+  admin_state_up = "true"
+}
+
+resource "openstack_networking_subnet_v2" "transfer_mgmt_subnet" {
+  name            = "transfer-mgmt-subnet"
+  network_id      = openstack_networking_network_v2.transfer_mgmt.id
+  cidr            = "192.168.101.0/24"
+  ip_version      = 4
+  enable_dhcp     = false
+  no_gateway      = true
+}
+
+resource "openstack_networking_network_v2" "transfer_dmz" {
+  name           = "transfer-dmz"
+  admin_state_up = "true"
+}
+
+resource "openstack_networking_subnet_v2" "transfer_dmz_subnet" {
+  name            = "transfer-dmz-subnet"
+  network_id      = openstack_networking_network_v2.transfer_dmz.id
+  cidr            = "192.168.102.0/24"
+  ip_version      = 4
+  enable_dhcp     = false
+  no_gateway      = true
+}
