@@ -1,7 +1,7 @@
 all:
   hosts:
     wosmOnpremSwitch:
-      ansible_host: 10.0.0.10
+      ansible_host: 172.16.0.4
       ansible_user: damjan
       ansible_password: damjan
       ansible_network_os: ios

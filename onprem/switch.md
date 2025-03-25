@@ -15,8 +15,10 @@ sudo screen /dev/ttyUSB0
 **Cisco Switch**
 
 ```
+username wosm privilege 15 secret aW9pL3mS2tGb8Xz
+
 interface Vlan1
-ip address 10.0.0.10 255.255.255.0
+ip address 172.16.0.4 255.255.255.0
 no shutdown
 
 hostname wosmOnpremSwitch
@@ -25,8 +27,8 @@ crypto key generate rsa modulus 2048
 ip ssh version 2
 
 aaa new-model
-aaa authentication login default group radius local
-aaa authorization exec default group radius local
+aaa authentication login default local group radius
+aaa authorization exec default local group radius
 aaa accounting exec defaul start-stop group radius
 aaa accounting network defaul start-stop group radius
 
@@ -43,7 +45,7 @@ int range f0/2-24
 authentication port-control auto
 dot1x pae authenticator
 
-radius-server host 10.0.0.5 auth-port 1812 key Pasw0rd+
+radius-server host 172.16.0.3 auth-port 1812 key Pasw0rd+
 
 line vty 0 4
 login authentication default
@@ -52,11 +54,12 @@ transport input ssh
 
 Speichern: copy running-config startup-config
 Löschen: write erase, reload (System configuration has been modified. Save? [yes/no]: n)
+Local Switch Fallback-Account: wosm:aW9pL3mS2tGb8Xz 
 
 **Mit SSH verbinden**
 
 ```bash
-ssh -o KexAlgorithms=+diffie-hellman-group1-sha1 -o Ciphers=+aes128-cbc -o MACs=+hmac-sha1 -o HostKeyAlgorithms=+ssh-rsa damjan@10.0.0.10
+ssh -o KexAlgorithms=+diffie-hellman-group1-sha1 -o Ciphers=+aes128-cbc -o MACs=+hmac-sha1 -o HostKeyAlgorithms=+ssh-rsa damjan@172.16.0.4
 ```
 
 **Ansible Playbook ausführen**
