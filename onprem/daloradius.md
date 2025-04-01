@@ -8,9 +8,37 @@
 4. 172.16.0.3 255.255.255.0 172.16.0.1
 5. Reboot
 
-6. First Web Login admin:admin
-7. Second Web Login administrator:radius
+**Login**
+
+- Firefox: Searchbar about:config then security.tls.version.min to 1
+- daloRADIUS Platform Login: first admin:admin, second administrator:radius
+- PHPMyAdmin Login: root:daloradius 
 
 **NAC for Switch**
+
+```sql
+use radius;
+show tables;
+
+insert into radgroupreply (groupname, attribute, op, value) values ('Vlan99', 'Tunnel-Type', '=', '13');
+insert into radgroupreply (groupname, attribute, op, value) values ('Vlan99', 'Tunnel-Medium-Type', '=', '6');
+insert into radgroupreply (groupname, attribute, op, value) values ('Vlan99', 'Tunnel-Private-Group-Id', '=', '99');
+
+insert into radgroupreply (groupname, attribute, op, value) values ('Vlan10', 'Tunnel-Type', '=', '13');
+insert into radgroupreply (groupname, attribute, op, value) values ('Vlan10', 'Tunnel-Medium-Type', '=', '6');
+insert into radgroupreply (groupname, attribute, op, value) values ('Vlan10', 'Tunnel-Private-Group-Id', '=', '10');
+
+insert into radgroupreply (groupname, attribute, op, value) values ('Vlan20', 'Tunnel-Type', '=', '13');
+insert into radgroupreply (groupname, attribute, op, value) values ('Vlan20', 'Tunnel-Medium-Type', '=', '6');
+insert into radgroupreply (groupname, attribute, op, value) values ('Vlan20', 'Tunnel-Private-Group-Id', '=', '20');
+
+insert into radgroupreply (groupname, attribute, op, value) values ('Vlan30', 'Tunnel-Type', '=', '13');
+insert into radgroupreply (groupname, attribute, op, value) values ('Vlan30', 'Tunnel-Medium-Type', '=', '6');
+insert into radgroupreply (groupname, attribute, op, value) values ('Vlan30', 'Tunnel-Private-Group-Id', '=', '30');
+
+INSERT INTO radusergroup (username, groupname, priority) VALUES ('DEFAULT', 'Vlan20', '10');
+insert into radgroupcheck (groupname, attribute, op, value) values ('Vlan20', 'Auth-Type', ':=', 'Accept');
+```
+
 1. Management>Nas>New Nas: IP 172.16.0.4, NAS Type cisco, NAS Secret Pasw0rd+ 
-2. Management>User>Nwe User: damjan:damjan
+2. Management>User>Nwe User: damjan:damjan, Group: Vlan99

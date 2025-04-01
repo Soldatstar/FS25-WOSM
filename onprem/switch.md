@@ -17,7 +17,16 @@ sudo screen /dev/ttyUSB0
 ```
 username wosm privilege 15 secret aW9pL3mS2tGb8Xz
 
-interface Vlan1
+vlan 99
+name management
+vlan 10
+name internal
+vlan 20
+name dmz
+vlan 30
+name external
+
+interface vlan 99
 ip address 172.16.0.4 255.255.255.0
 no shutdown
 
@@ -41,6 +50,8 @@ int g0/1
 switchport mode trunk
 int range f0/1-24
 switchport mode access
+int f0/1
+switchport access vlan 99
 int range f0/2-24
 authentication port-control auto
 dot1x pae authenticator
@@ -53,7 +64,7 @@ transport input ssh
 ```
 
 Speichern: copy running-config startup-config
-Löschen: write erase, reload (System configuration has been modified. Save? [yes/no]: n)
+Löschen: delete vlan.dat, write erase, reload (System configuration has been modified. Save? [yes/no]: n)
 Local Switch Fallback-Account: wosm:aW9pL3mS2tGb8Xz 
 
 **Mit SSH verbinden**
