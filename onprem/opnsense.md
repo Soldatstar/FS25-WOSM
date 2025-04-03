@@ -20,6 +20,6 @@
 1. Assign Interaface
 2. WAN -> bridge red, LAN -> internal firewall
 3. Set interface IP address
-4. Choose LAN and for ipv4: 172.16.0.1
+4. Choose LAN and for ipv4: 10.16.16.1
 5. Choose WAN and DHCP
 
