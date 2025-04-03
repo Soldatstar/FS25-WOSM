@@ -35,9 +35,6 @@ insert into radgroupreply (groupname, attribute, op, value) values ('Vlan20', 'T
 insert into radgroupreply (groupname, attribute, op, value) values ('Vlan30', 'Tunnel-Type', '=', '13');
 insert into radgroupreply (groupname, attribute, op, value) values ('Vlan30', 'Tunnel-Medium-Type', '=', '6');
 insert into radgroupreply (groupname, attribute, op, value) values ('Vlan30', 'Tunnel-Private-Group-Id', '=', '30');
-
-INSERT INTO radusergroup (username, groupname, priority) VALUES ('DEFAULT', 'Vlan20', '10');
-insert into radgroupcheck (groupname, attribute, op, value) values ('Vlan20', 'Auth-Type', ':=', 'Accept');
 ```
 
 1. Management>Nas>New Nas: IP 172.16.0.4, NAS Type cisco, NAS Secret Pasw0rd+ 
