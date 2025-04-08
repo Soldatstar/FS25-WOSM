@@ -4,8 +4,8 @@
 
 1. Herunterladen des OVA: https://sourceforge.net/projects/daloradius/files/daloradius/daloRADIUS%20VM/
 2. Bridge Yellow im Lab
-3. Configure networking manually
-4. 172.16.0.3 255.255.255.0 172.16.0.1
+3. Pfsense DHCP MAC-IP: 08:00:27:ea:ec:94-172.16.0.3  
+4. Configure networking over DHCP
 5. Reboot
 
 **Login**
