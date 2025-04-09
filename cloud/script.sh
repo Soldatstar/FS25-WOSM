@@ -9,7 +9,7 @@ ANSIBLE_DIR="$BASE_DIR/ansible"
 INVENTORY_FILE="$ANSIBLE_DIR/inventory.yml"
 # Regions to process
 #REGIONS=("ZH" "LS")
-REGIONS=("ZH")
+REGIONS=("LS")
 
 # Function to generate dynamic Ansible inventory file
 generate_inventory() {
@@ -20,91 +20,57 @@ generate_inventory() {
     # Start inventory file with the base structure
     cat <<EOF > "$INVENTORY_FILE"
 all:
-  children:
+  hosts:
 EOF
 
     for region in "${REGIONS[@]}"; do
         cd "$TERRAFORM_DIR/$region" || exit
         yes yes | terraform apply -refresh-only
 
-        # Attempt to get outputs for current region, ignoring errors if output doesn't exist
-        ceph_floating_output=$(terraform output -json floating_ips_ceph 2>/dev/null)
-        ceph_private_output=$(terraform output -json private_ips_ceph 2>/dev/null)
+        # Get outputs for current region
         node_floating_output=$(terraform output -json nodes_floating_ips_nodes 2>/dev/null)
-        node_private_output=$(terraform output -json private_ips_nodes 2>/dev/null)
+        opnsense_floating_ip=$(terraform output -json opnsense_floating_ip 2>/dev/null | jq -r '.')
+        pfsense_floating_ip=$(terraform output -json pfsense_floating_ip 2>/dev/null | jq -r '.')
 
-        # Convert outputs to arrays if they are available
-        if [[ -n "$ceph_floating_output" && "$ceph_floating_output" != "null" ]]; then
-            readarray -t ceph_floating < <(echo "$ceph_floating_output" | jq -r '.[]')
-            readarray -t ceph_private < <(echo "$ceph_private_output" | jq -r '.[]')
-        else
-            ceph_floating=()
-            ceph_private=()
-        fi
-
+        # Parse node floating IPs
+        declare -A node_floating
         if [[ -n "$node_floating_output" && "$node_floating_output" != "null" ]]; then
-            readarray -t node_floating < <(echo "$node_floating_output" | jq -r '.[]')
-            readarray -t node_private < <(echo "$node_private_output" | jq -r '.[]')
-        else
-            node_floating=()
-            node_private=()
+            while IFS="=" read -r key value; do
+                node_floating["$key"]=$(echo "$value" | tr -d '",')
+            done < <(echo "$node_floating_output" | jq -r 'to_entries[] | "\(.key)=\(.value)"')
         fi
 
         cd "$BASE_DIR"
 
-        # Write Ceph entries if available
-        if [ ${#ceph_floating[@]} -gt 0 ]; then
+        # Write Opnsense entry
+        if [[ -n "$opnsense_floating_ip" ]]; then
             cat <<EOF >> "$INVENTORY_FILE"
-    ${region}_ceph:
-      hosts:
+    opnsense:
+      ansible_host: $opnsense_floating_ip
+      ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
 EOF
-            for i in "${!ceph_floating[@]}"; do
-                if [ "$region" == "LS" ]; then
-                    if [ "$i" -eq 0 ]; then
-                        host_name="LS-monitor01"
-                    else
-                        # For OSDs, start numbering from 1 (i==1 becomes osd01, etc.)
-                        osd_num=$(printf "%02d" "$i")
-                        host_name="LS-osd${osd_num}"
-                    fi
-                else
-                    # Default naming if region is not LS
-                    node_num=$(printf "%02d" $((i+1)))
-                    host_name="${region}-osd${node_num}"
-                fi
-
-                cat <<EOF >> "$INVENTORY_FILE"
-        ${host_name}:
-          ansible_host: ${ceph_floating[$i]}
-          private_ip: ${ceph_private[$i]}
-          ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
-EOF
-            done
         fi
 
-        # Write Node entries if available
-        if [ ${#node_floating[@]} -gt 0 ]; then
+        # Write Pfsense entry
+        if [[ -n "$pfsense_floating_ip" ]]; then
             cat <<EOF >> "$INVENTORY_FILE"
-    ${region}_nodes:
-      hosts:
+    pfsense:
+      ansible_host: $pfsense_floating_ip
+      ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
 EOF
-            for i in "${!node_floating[@]}"; do
-                node_num=$(printf "%02d" $((i+1)))
-                if [ "$region" == "ZH" ]; then
-                    host_name="ZH-Node${node_num}"
-                else
-                    host_name="${region}-node${node_num}"
-                fi
-
-                cat <<EOF >> "$INVENTORY_FILE"
-        ${host_name}:
-          ansible_host: ${node_floating[$i]}
-          private_ip: ${node_private[$i]}
-          ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
-EOF
-            done
         fi
 
+        # Write Node entries with original names
+        for key in MediaServer MonitoringServer WebServer; do
+            if [[ -n "${node_floating[$key]}" ]]; then
+                lowercase_key=$(echo "$key" | tr '[:upper:]' '[:lower:]')
+                cat <<EOF >> "$INVENTORY_FILE"
+    $lowercase_key:
+      ansible_host: ${node_floating[$key]}
+      ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+EOF
+            fi
+        done
     done
 
     echo "Inventory file generated at $INVENTORY_FILE"

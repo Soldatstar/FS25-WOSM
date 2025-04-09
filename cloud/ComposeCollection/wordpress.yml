@@ -1,0 +1,30 @@
+
+services:
+  wordpress:
+    image: wordpress:latest
+    ports:
+      - "8080:80"  # Map host port 8080 → container port 80
+    environment:
+      WORDPRESS_DB_HOST: mysql
+      WORDPRESS_DB_USER: wpuser
+      WORDPRESS_DB_PASSWORD: wppassword
+      WORDPRESS_DB_NAME: wpdb
+    volumes:
+      - wordpress_data:/var/www/html
+    depends_on:
+      - mysql
+  
+
+  mysql:
+    image: mysql:8.4.4
+    environment:
+      MYSQL_DATABASE: wpdb
+      MYSQL_USER: wpuser
+      MYSQL_PASSWORD: wppassword
+      MYSQL_ROOT_PASSWORD: rootpassword
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+volumes:
+  wordpress_data:
+  mysql_data:
