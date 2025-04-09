@@ -30,4 +30,9 @@ scrape_configs:
     static_configs:
       - targets:
         - node-exporter:9100
-
+  - job_name: wordpress
+    scrape_interval: 15s
+    metrics_path: /wp-json/prompress/v1/metrics
+    static_configs:
+      - targets:
+        - 192.168.20.32:8080

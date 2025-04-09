@@ -1,0 +1,36 @@
+services:
+    wordpress:
+        image: wordpress
+        container_name: wordpress
+        restart: always
+        ports:
+            # This is the end of the movie
+            - 8080:80
+        environment:
+            WORDPRESS_DB_HOST: db
+            WORDPRESS_DB_USER: wpuser
+            WORDPRESS_DB_PASSWORD: wppassword
+            WORDPRESS_DB_NAME: wpdb
+        volumes:
+            - wordpress:/var/www/html
+
+    db:
+        image: mysql:5.7
+        container_name: wordpress_mysql
+        restart: always
+        environment:
+            MYSQL_DATABASE: wpdb
+            MYSQL_USER: wpuser
+            MYSQL_PASSWORD: wppassword
+            MYSQL_RANDOM_ROOT_PASSWORD: "1"
+        volumes:
+            - wp_db:/var/lib/mysql
+
+    redis:
+        image: redis
+        container_name: wordpress_redis
+        restart: always
+
+volumes:
+    wordpress:
+    wp_db:

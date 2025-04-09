@@ -1,0 +1,83 @@
+- name: Enable ens4 interface with dhcp4
+  hosts:
+    - webserver
+    #- monitoringserver
+    - mediaserver
+  become: true
+  remote_user: debian
+  tasks:
+    - name: Get ens4 MAC address
+      shell: |
+        ip -br link show ens4 | awk '{print $3}'
+      register: ens4_mac
+      ignore_errors: yes
+      changed_when: false
+
+    - name: Check if ens4 already has an IP address
+      shell: |
+        ip -o -4 addr show ens4 | awk '{print $4}' | cut -d/ -f1
+      register: ens4_ip
+      changed_when: false
+      when: ens4_mac.rc == 0
+
+    - name: Create backup of netplan config
+      ansible.builtin.copy:
+        src: /etc/netplan/50-cloud-init.yaml
+        dest: /etc/netplan/50-cloud-init.yaml.bak
+        remote_src: yes
+      when: 
+        - ens4_mac.rc == 0
+        - ens4_ip.stdout == ""
+
+    - name: Read current netplan configuration
+      ansible.builtin.slurp:
+        src: /etc/netplan/50-cloud-init.yaml
+      register: netplan_config
+      when: 
+        - ens4_mac.rc == 0
+        - ens4_ip.stdout == ""
+
+    - name: Add ens4 configuration to netplan under ethernets
+      ansible.builtin.blockinfile:
+        path: /etc/netplan/50-cloud-init.yaml
+        marker: "# {mark} ANSIBLE MANAGED BLOCK - ens4 configuration"
+        insertafter: '^\s*ethernets:\s*$'
+        block: |
+          {% filter indent(width=8, first=true) %}
+          ens4:
+              dhcp4: true
+              match:
+                  macaddress: {{ ens4_mac.stdout }}
+              set-name: ens4
+          {% endfilter %}
+      when:
+        - ens4_mac.rc == 0
+        - ens4_ip.stdout == ""
+        - ens4_mac.stdout not in (netplan_config.content | b64decode)
+
+    - name: Fix netplan configuration file permissions (optional)
+      ansible.builtin.file:
+        path: /etc/netplan/50-cloud-init.yaml
+        mode: '0644'
+      when:
+        - ens4_mac.rc == 0
+        - ens4_ip.stdout == ""
+        
+    # disabling this currently makes the machine unreachable
+    # - name: Disable cloud-init network configuration
+    #   copy:
+    #     dest: /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
+    #     content: |
+    #       network: {config: disabled}
+    #   become: true
+    #   when:
+    #     - ens4_mac.rc == 0
+    #     - ens4_ip.stdout == ""
+
+
+    - name: Apply netplan configuration
+      command: netplan apply
+      when:
+        - ens4_mac.rc == 0
+        - ens4_ip.stdout == ""
+        - "'ens4' not in (netplan_config.content | b64decode)"
