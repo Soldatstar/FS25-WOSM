@@ -1,0 +1,83 @@
+---
+- name: Deploy WordPress container with Redis on webserver
+  hosts: webserver
+  become: true
+  remote_user: debian
+  tasks:
+    - name: Create WordPress directory
+      ansible.builtin.file:
+        path: /home/debian/wordpress
+        state: directory
+        owner: debian
+        group: debian
+        mode: '0755'
+
+    - name: Copy Docker Compose file to remote
+      ansible.builtin.copy:
+        src: ../composeCollection/wordpress.yml
+        dest: /home/debian/wordpress/docker-compose.yml
+        owner: debian
+        group: debian
+        mode: '0644'
+
+    - name: Start WordPress containers
+      community.docker.docker_compose_v2:
+        project_name: wp
+        project_src: /home/debian/wordpress
+        files:
+          - docker-compose.yml
+        state: present
+
+    - name: Update packages and install nano
+      community.docker.docker_container_exec:
+        container: wordpress
+        argv:
+          - /bin/sh
+          - -c
+          - "apt update && apt install -y nano"
+        chdir: /var/www/html
+        detach: false
+        strip_empty_ends: true
+
+    - name: Install Redis PHP extension
+      community.docker.docker_container_exec:
+        container: wordpress
+        command: pecl install redis
+        chdir: /tmp
+        detach: false
+
+    - name: Enable Redis extension
+      community.docker.docker_container_exec:
+        container: wordpress
+        argv:
+          - docker-php-ext-enable
+          - redis
+        detach: false
+
+    - name: Configure Redis extension
+      community.docker.docker_container_exec:
+        container: wordpress
+        command: echo "extension=redis.so" > /usr/local/etc/php/conf.d/redis.ini
+        detach: false
+
+    - name: Modify wp-config.php
+      community.docker.docker_container_exec:
+        container: wordpress
+        argv:
+          - sed
+          - -i
+          - /\/\* That's all, stop editing! Happy publishing. \*\//i\
+            if (!defined('WP_REDIS_HOST')) { define('WP_REDIS_HOST', 'redis'); }\
+            if (!defined('WP_REDIS_PORT')) { define('WP_REDIS_PORT', 6379); }
+          - /var/www/html/wp-config.php
+        detach: false
+
+    - name: Restart WordPress container
+      community.docker.docker_container:
+        name: wordpress
+        state: started
+        restart: true
+
+    - name: Display initial setup URL
+      ansible.builtin.debug:
+        msg: "Go to http://{{ ansible_host }}:8080/ to complete the WordPress setup."
