@@ -31,6 +31,7 @@ EOF
         node_floating_output=$(terraform output -json nodes_floating_ips_nodes 2>/dev/null)
         opnsense_floating_ip=$(terraform output -json opnsense_floating_ip 2>/dev/null | jq -r '.')
         pfsense_floating_ip=$(terraform output -json pfsense_floating_ip 2>/dev/null | jq -r '.')
+        node_mac_address_output=$(terraform output -json mac_addresses_nodes 2>/dev/null)
 
         # Parse node floating IPs
         declare -A node_floating
@@ -39,6 +40,21 @@ EOF
                 node_floating["$key"]=$(echo "$value" | tr -d '",')
             done < <(echo "$node_floating_output" | jq -r 'to_entries[] | "\(.key)=\(.value)"')
         fi
+
+        #parse mac address based on this:
+        #mac_addresses_nodes = {
+            # "MediaServer" = "fa:16:3e:e5:f5:e7"
+            # "MonitoringServer" = "fa:16:3e:65:14:66"
+            # "WebServer" = "fa:16:3e:57:d4:e8"
+            # }
+        declare -A node_mac_address
+        if [[ -n "$node_mac_address_output" && "$node_mac_address_output" != "null" ]]; then
+            while IFS="=" read -r key value; do
+                key=$(echo "$key" | tr -d '", ')
+                value=$(echo "$value" | tr -d '", ')
+                node_mac_address["$key"]="$value"
+            done < <(echo "$node_mac_address_output" | jq -r 'to_entries[] | "\(.key)=\(.value)"')
+        fi   
 
         cd "$BASE_DIR"
 
@@ -68,6 +84,7 @@ EOF
     $lowercase_key:
       ansible_host: ${node_floating[$key]}
       ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+      mac_address: ${node_mac_address[$key]}
 EOF
             fi
         done

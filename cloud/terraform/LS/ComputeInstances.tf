@@ -94,6 +94,11 @@ resource "openstack_compute_floatingip_associate_v2" "fip_assoc" {
 }
 
 # Updated outputs
+
+ output "mac_addresses_nodes" {
+   value = { for k, v in openstack_networking_port_v2.compute_ports : k => v.mac_address }
+ }
+
 output "nodes_floating_ips_nodes" {
   value = { for k, v in openstack_networking_floatingip_v2.nodes_floating_ips : k => v.address }
 }

@@ -5,11 +5,11 @@ data "openstack_images_image_v2" "debian12" {
 }
 
 data "openstack_blockstorage_snapshot_v3" "opnsense_snapshot" {
-  name        = "snapshot for snapshot for EdgeRouter_DHCP_WG_V2" 
+  name        = "snapshot for LS-ER-opnsense11-04-25" 
   most_recent = true
 }
 
 data "openstack_blockstorage_snapshot_v3" "pfsense_snapshot" {
-  name        = "snapshot for snapshot for Firewall" 
+  name        = "snapshot for LS-FW-pfsense11-04-25" 
   most_recent = true
 }
