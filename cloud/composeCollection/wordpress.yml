@@ -33,4 +33,6 @@ services:
 
 volumes:
     wordpress:
+        driver: local
     wp_db:
+        driver: local
