@@ -1,11 +1,12 @@
-- name: Enable ens4 interface with dhcp4
+- name: Configure network and DNS
   hosts:
     - webserver
-    #- monitoringserver
+    - monitoringserver
     - mediaserver
   become: true
   remote_user: debian
   tasks:
+    # Network Configuration
     - name: Get ens4 MAC address
       shell: |
         ip -br link show ens4 | awk '{print $3}'
@@ -20,14 +21,26 @@
       changed_when: false
       when: ens4_mac.rc == 0
 
-    - name: Create backup of netplan config
+    - name: Ensure ens4 has an IP address
+      debug:
+        msg: "ens4 already has IP: {{ ens4_ip.stdout }}"
+      when:
+        - ens4_ip.stdout != ""
+        - ens4_mac.rc == 0
+
+    - name: Create backup of netplan config if not already backed up
+      ansible.builtin.stat:
+        path: /etc/netplan/50-cloud-init.yaml.bak
+      register: netplan_backup
+
+    - name: Backup netplan config
       ansible.builtin.copy:
         src: /etc/netplan/50-cloud-init.yaml
         dest: /etc/netplan/50-cloud-init.yaml.bak
         remote_src: yes
-      when: 
+      when:
+        - not netplan_backup.stat.exists
         - ens4_mac.rc == 0
-        - ens4_ip.stdout == ""
 
     - name: Read current netplan configuration
       ansible.builtin.slurp:
@@ -45,15 +58,34 @@
         block: |
           {% filter indent(width=8, first=true) %}
           ens4:
-              dhcp4: true
+              dhcp4: false
+              addresses:
+                  - {{ hostvars[inventory_hostname]['via_ip'] | regex_replace('([0-9]+)$', '10') }}/24
               match:
                   macaddress: {{ ens4_mac.stdout }}
               set-name: ens4
+              routes:
+                  - to: 192.168.0.0/16
+                    via: {{ hostvars[inventory_hostname]['via_ip'] }}
+                    metric: 100
+                  - to: 172.16.0.0/12
+                    via: {{ hostvars[inventory_hostname]['via_ip'] }}
+                    metric: 100
           {% endfilter %}
       when:
         - ens4_mac.rc == 0
         - ens4_ip.stdout == ""
-        - ens4_mac.stdout not in (netplan_config.content | b64decode)
+        - "'ens4' not in (netplan_config.content | b64decode)"
+
+    - name: Copy updated netplan configuration to 99-interface-setup.yaml
+      ansible.builtin.copy:
+        src: /etc/netplan/50-cloud-init.yaml
+        dest: /etc/netplan/99-interface-setup.yaml
+        remote_src: yes
+      when:
+        - ens4_mac.rc == 0
+        - ens4_ip.stdout == ""
+        - "'ens4' not in (netplan_config.content | b64decode)"
 
     - name: Fix netplan configuration file permissions (optional)
       ansible.builtin.file:
@@ -62,18 +94,42 @@
       when:
         - ens4_mac.rc == 0
         - ens4_ip.stdout == ""
-        
-    # disabling this currently makes the machine unreachable
-    # - name: Disable cloud-init network configuration
-    #   copy:
-    #     dest: /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
-    #     content: |
-    #       network: {config: disabled}
-    #   become: true
-    #   when:
-    #     - ens4_mac.rc == 0
-    #     - ens4_ip.stdout == ""
+        - "'ens4' not in (netplan_config.content | b64decode)"
 
+    - name: Disable cloud-init network configuration
+      copy:
+        dest: /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
+        content: |
+          network: {config: disabled}
+      become: true
+      when:
+        - ens4_mac.rc == 0
+        - ens4_ip.stdout == ""
+        - not ansible_facts['ansible_local'].get('cloud_init_disabled', False)
+
+    # DNS Configuration
+    - name: Ensure via_ip is primary nameserver
+      ansible.builtin.lineinfile:
+        path: /etc/resolv.conf
+        line: "nameserver {{ hostvars[inventory_hostname]['via_ip'] }}"
+        insertafter: BOF
+        state: present
+        backup: yes
+
+    # Emergency User Configuration
+    - name: Create user wosm with sudo rights
+      ansible.builtin.user:
+        name: wosm
+        password: "{{ 'wosm2025' | password_hash('sha512') }}"
+        shell: /bin/bash
+        groups: sudo
+        state: present
+
+    - name: Ensure wosm has passwordless sudo
+      ansible.builtin.copy:
+        dest: /etc/sudoers.d/wosm
+        content: "wosm ALL=(ALL) NOPASSWD:ALL\n"
+        mode: '0440'
 
     - name: Apply netplan configuration
       command: netplan apply
@@ -81,3 +137,18 @@
         - ens4_mac.rc == 0
         - ens4_ip.stdout == ""
         - "'ens4' not in (netplan_config.content | b64decode)"
+    
+    - name: Install iputils-ping
+      ansible.builtin.apt:
+        name: iputils-ping
+        state: present
+
+    - name: Ping via_ip to verify connectivity
+      ansible.builtin.command:
+        cmd: ping -c 4 {{ hostvars[inventory_hostname]['via_ip'] }}
+      register: ping_result
+      changed_when: false
+
+    - name: Display ping result
+      debug:
+        var: ping_result.stdout

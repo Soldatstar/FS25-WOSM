@@ -1,4 +1,3 @@
----
 - name: Update all instances & install docker
   hosts: 
     - monitoringserver

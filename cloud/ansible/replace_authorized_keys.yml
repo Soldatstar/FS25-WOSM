@@ -1,6 +1,9 @@
 ---
 - name: Replace authorized_keys on the server
-  hosts: all
+  hosts:
+    - webserver
+    - monitoringserver
+    - mediaserver
   become: true
   remote_user: debian
   tasks:

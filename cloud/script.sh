@@ -76,15 +76,18 @@ EOF
 EOF
         fi
 
-        # Write Node entries with original names
+        # Write Node entries with hardcoded `via_ip`
+        declare -A via_ips=(["MediaServer"]="192.168.10.1" ["MonitoringServer"]="192.168.0.1" ["WebServer"]="192.168.20.1")
         for key in MediaServer MonitoringServer WebServer; do
             if [[ -n "${node_floating[$key]}" ]]; then
                 lowercase_key=$(echo "$key" | tr '[:upper:]' '[:lower:]')
+                via_ip="${via_ips[$key]}"
                 cat <<EOF >> "$INVENTORY_FILE"
     $lowercase_key:
       ansible_host: ${node_floating[$key]}
       ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
       mac_address: ${node_mac_address[$key]}
+      via_ip: $via_ip
 EOF
             fi
         done
@@ -126,6 +129,8 @@ apply_and_deploy() {
 
     playbooks=(
       "replace_authorized_keys.yml"
+      "network-config.yml"
+      "install-docker.yml"
     )
 
     # Run each playbook
