@@ -1,0 +1,73 @@
+---
+- name: Deploy Authentik container on monitoring server
+  hosts: monitoringserver
+  become: true
+  remote_user: debian
+  tasks:
+    - name: Create authentik directory in debian's home
+      ansible.builtin.file:
+        path: /home/debian/authentik
+        state: directory
+        owner: debian
+        group: debian
+        mode: '0755'
+
+    - name: Download docker-compose.yml
+      ansible.builtin.get_url:
+        url: https://goauthentik.io/docker-compose.yml
+        dest: /home/debian/authentik/docker-compose.yml
+        owner: debian
+        group: debian
+        mode: '0644'
+
+    - name: Check if .env file exists
+      ansible.builtin.stat:
+        path: /home/debian/authentik/.env
+      register: env_file
+
+    - name: Generate PG_PASS
+      ansible.builtin.shell: openssl rand -base64 36 | tr -d '\n'
+      register: pg_pass
+      when: not env_file.stat.exists
+      changed_when: false
+
+    - name: Generate AUTHENTIK_SECRET_KEY
+      ansible.builtin.shell: openssl rand -base64 60 | tr -d '\n'
+      register: authentik_secret_key
+      when: not env_file.stat.exists
+      changed_when: false
+
+    - name: Create .env file
+      ansible.builtin.copy:
+        dest: /home/debian/authentik/.env
+        content: |
+          PG_PASS={{ pg_pass.stdout }}
+          AUTHENTIK_SECRET_KEY={{ authentik_secret_key.stdout }}
+          AUTHENTIK_ERROR_REPORTING__ENABLED=true
+        owner: debian
+        group: debian
+        mode: '0600'
+      when: not env_file.stat.exists
+
+    - name: Ensure ERROR_REPORTING is enabled in .env
+      ansible.builtin.lineinfile:
+        path: /home/debian/authentik/.env
+        line: AUTHENTIK_ERROR_REPORTING__ENABLED=true
+        regexp: '^AUTHENTIK_ERROR_REPORTING__ENABLED='
+        state: present
+
+    - name: Pull Docker images
+      ansible.builtin.shell: docker compose pull
+      args:
+        chdir: /home/debian/authentik
+      become: yes
+
+    - name: Start Authentik containers
+      ansible.builtin.shell: docker compose up -d
+      args:
+        chdir: /home/debian/authentik
+      become: yes
+
+    - name: Display initial setup URL
+      ansible.builtin.debug:
+        msg: "Go to http://{{ ansible_host }}:9000/if/flow/initial-setup/ to complete the setup."
