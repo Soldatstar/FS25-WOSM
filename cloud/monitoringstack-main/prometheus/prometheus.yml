@@ -30,6 +30,9 @@ scrape_configs:
     static_configs:
       - targets:
         - node-exporter:9100
+###########################################################################
+###############################CLOUD SETTINGS##############################
+###########################################################################
 
 #########################
 ####INTERNAL MACHINE#####
@@ -89,3 +92,53 @@ scrape_configs:
     static_configs:
       - targets:
         - 192.168.0.2:9100
+
+
+###########################################################################
+##############################ONPREM SETTINGS##############################
+###########################################################################
+
+
+#########################
+#####NETWORK ROUTERS#####
+######################### 
+  - job_name: opnsense-onPrem
+    scrape_interval: 15s
+    static_configs:
+      - targets:
+        - 10.16.16.1:9100
+
+  - job_name: pfsense-onPrem
+    scrape_interval: 15s
+    static_configs:
+      - targets:
+        - 10.16.16.2:9100
+
+
+#########################
+#### daloradius VM ######
+######################### 
+- job_name: daloradius
+scrape_interval: 15s
+static_configs:
+  - targets:
+    - 172.16.0.3:9100
+    
+#########################
+###### gitea VM #########
+######################### 
+- job_name: gitea
+scrape_interval: 15s
+static_configs:
+  - targets:
+    - 172.16.0.6:9100
+   
+#########################
+###### WAZUH VM #########
+######################### 
+- job_name: daloradius
+scrape_interval: 15s
+static_configs:
+  - targets:
+    - 172.16.0.5:9100
+       
