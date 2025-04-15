@@ -97,7 +97,6 @@ EOF
 }
 
 
-# ... [Rest of the script remains unchanged until the apply_and_deploy function]
 
 # Option 1: Apply Terraform and run Ansible playbooks
 apply_and_deploy() {
@@ -112,15 +111,10 @@ apply_and_deploy() {
     # Generate inventory after Terraform applies
     generate_inventory
 
-    # Check all servers (updated to check both Ceph and Nodes)
+    # Check all servers 
     for region in "${REGIONS[@]}"; do
         cd "$TERRAFORM_DIR/$region" || exit
-        # Check Ceph nodes
-        readarray -t ceph_floating < <(terraform output -json floating_ips_ceph | jq -r '.[]')
-        for ip in "${ceph_floating[@]}"; do
-            check_server "$ip"
-        done
-        # Check regular nodes
+  
         readarray -t node_floating < <(terraform output -json nodes_floating_ips_nodes | jq -r '.[]')
         for ip in "${node_floating[@]}"; do
             check_server "$ip"
@@ -131,6 +125,11 @@ apply_and_deploy() {
       "replace_authorized_keys.yml"
       "network-config.yml"
       "install-docker.yml"
+      "install-wazuh-agent.yml"
+      "deploy-monitoringstack.yml"
+      "deploy-authentik.yml"
+      "deploy-wordpress.yml"
+      
     )
 
     # Run each playbook

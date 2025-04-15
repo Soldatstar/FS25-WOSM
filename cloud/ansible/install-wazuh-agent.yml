@@ -7,10 +7,16 @@
   become: true
   remote_user: debian
   vars:
-    wazuh_manager_ip: "10.0.0.2"
+    wazuh_manager_ip: "172.16.0.5"
     wazuh_keyring_path: "/usr/share/keyrings/wazuh.gpg"
 
   tasks:
+    - name: remove wazuh agent, ignore errors
+      ansible.builtin.apt:
+        name: wazuh-agent
+        state: absent
+      ignore_errors: yes
+
     - name: Create keyrings directory
       ansible.builtin.file:
         path: /usr/share/keyrings
