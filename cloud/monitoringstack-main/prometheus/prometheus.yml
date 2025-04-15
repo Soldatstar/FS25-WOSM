@@ -30,9 +30,62 @@ scrape_configs:
     static_configs:
       - targets:
         - node-exporter:9100
+
+#########################
+####INTERNAL MACHINE#####
+#########################        
+  - job_name: cadvisor intenal
+    scrape_interval: 15s
+    static_configs:
+      - targets:
+        - 192.168.10.10:9112
+
+  - job_name: node-exporter internal
+    scrape_interval: 15s
+    static_configs:
+      - targets:
+        - 192.168.10.10:9110
+
+#  - job_name: nextcloud TODO
+
+#  - job_name: clamav TODO
+
+####################
+####DMZ MACHINE#####
+####################
+  - job_name: cadvisor dmz
+    scrape_interval: 15s
+    static_configs:
+      - targets:
+        - 192.168.20.10:9112
+
+  - job_name: node-exporter dmz
+    scrape_interval: 15s
+    static_configs:
+      - targets:
+        - 192.168.20.10:9110
+
   - job_name: wordpress
     scrape_interval: 15s
     metrics_path: /wp-json/prompress/v1/metrics
     static_configs:
       - targets:
-        - 192.168.20.32:8080
+        - 192.168.20.10:8080
+
+ # - job_name: Nginx Proxy TODO
+       
+
+#########################
+#####NETWORK ROUTERS#####
+#########################   
+  - job_name: opnsense-cloud
+    scrape_interval: 15s
+    static_configs:
+      - targets:
+        - 192.168.0.1:9100
+
+  - job_name: pfsense-cloud
+    scrape_interval: 15s
+    static_configs:
+      - targets:
+        - 192.168.0.2:9100
