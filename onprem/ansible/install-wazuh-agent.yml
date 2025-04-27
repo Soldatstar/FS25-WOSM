@@ -1,0 +1,64 @@
+---
+- name: Install and configure Wazuh agent
+  hosts: 
+  - gitea
+  become: true
+  remote_user: debian
+  vars:
+    wazuh_manager_ip: "172.16.0.5"
+    wazuh_keyring_path: "/usr/share/keyrings/wazuh.gpg"
+
+  tasks:
+    - name: remove wazuh agent, ignore errors
+      ansible.builtin.apt:
+        name: wazuh-agent
+        state: absent
+      ignore_errors: yes
+
+    - name: Create keyrings directory
+      ansible.builtin.file:
+        path: /usr/share/keyrings
+        state: directory
+        mode: '0755'
+
+    - name: Add Wazuh GPG key (manual method)
+      ansible.builtin.shell:
+        cmd: |
+          curl -s https://packages.wazuh.com/key/GPG-KEY-WAZUH | 
+          gpg --no-default-keyring --keyring gnupg-ring:{{ wazuh_keyring_path }} --import && 
+          chmod 644 {{ wazuh_keyring_path }}
+        creates: "{{ wazuh_keyring_path }}"
+
+
+    - name: Add Wazuh repository 
+      ansible.builtin.shell:
+        cmd: echo "deb [signed-by={{ wazuh_keyring_path }}] https://packages.wazuh.com/4.x/apt/ stable main" | tee -a /etc/apt/sources.list.d/wazuh.list
+        creates: /etc/apt/sources.list.d/wazuh.list
+
+    - name: Install Wazuh agent
+      ansible.builtin.apt:
+        name: wazuh-agent
+        update_cache: yes
+        state: present
+      environment:
+        WAZUH_MANAGER: "{{ wazuh_manager_ip }}"
+        
+      notify: Restart Wazuh agent
+
+    - name: Ensure agent is running
+      ansible.builtin.systemd:
+        name: wazuh-agent
+        enabled: yes
+        state: started
+
+  handlers:
+    - name: Set keyring permissions
+      ansible.builtin.file:
+        path: "{{ wazuh_keyring_path }}"
+        mode: '0644'
+        state: file
+
+    - name: Restart Wazuh agent
+      ansible.builtin.systemd:
+        name: wazuh-agent
+        state: restarted
