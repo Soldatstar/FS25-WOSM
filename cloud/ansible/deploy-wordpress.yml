@@ -80,4 +80,4 @@
 
     - name: Display initial setup URL
       ansible.builtin.debug:
-        msg: "Go to http://{{ ansible_host }}:8080/ to complete the WordPress setup."
+        msg: "Go to http://{{ ansible_host }}:8081/ to complete the WordPress setup."

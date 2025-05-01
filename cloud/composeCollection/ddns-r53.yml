@@ -1,0 +1,12 @@
+services:
+  ddns-route53:
+    image: crazymax/ddns-route53:latest
+    container_name: ddns-route53
+    env_file:
+      - ./ddns-r53.env
+    environment:
+      - "TZ=Europe/Zurich"
+      - "SCHEDULE=*/30 * * * *"
+      - "LOG_LEVEL=info"
+      - "LOG_JSON=false"
+    restart: always
