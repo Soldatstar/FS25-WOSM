@@ -1,0 +1,68 @@
+---
+- name: Setup Nextcloud Docker Host
+  hosts: mediaserver
+  become: true
+  remote_user: debian
+  vars:
+    rsync_target: "ubuntu-mirror@172.16.0.7:/home/ubuntu-mirror/backup/nextcloud_data/"
+    ssh_key_path: "/home/debian/.ssh/id_rsa"
+
+  tasks:
+    - name: Install required packages
+      apt:
+        name:
+          - clamav
+          - cron
+          - clamav-daemon
+        update_cache: yes
+        state: present
+
+    - name: Start ClamAV Daemon
+      systemd:
+        name: clamav-daemon.service
+        state: started
+        enabled: yes
+
+    - name: Add user debian to www-data group
+      user:
+        name: debian
+        groups: www-data
+        append: yes
+
+    - name: Ensure SSH key is present
+      become_user: debian
+      openssh_keypair:
+        path: "{{ ssh_key_path }}"
+        type: rsa
+        size: 4096
+        force: no
+      register: sshkey
+
+    - name: Create rsync cron job
+      become_user: debian
+      cron:
+        name: "rsync nextcloud data"
+        minute: "*"
+        job: "rsync -avz --delete /home/debian/nextcloud/ {{ rsync_target }}"
+
+    - name: Create nextcloud directory
+      ansible.builtin.file:
+        path: /home/debian/nextcloud
+        state: directory
+        owner: debian
+        group: debian
+        mode: '0755'
+
+    - name: Copy Docker Compose file to remote
+      ansible.builtin.copy:
+        src: ../composeCollection/nextcloud.yml
+        dest: /home/debian/nextcloud/docker-compose.yml
+        owner: debian
+        group: debian
+        mode: '0644'
+
+    - name: Start Nextcloud containers via docker compose
+      ansible.builtin.shell: docker compose up -d
+      args:
+        chdir: /home/debian/nextcloud
+

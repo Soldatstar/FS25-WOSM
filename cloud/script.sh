@@ -129,7 +129,7 @@ apply_and_deploy() {
       "deploy-monitoringstack.yml"
       "deploy-authentik.yml"
       "deploy-wordpress.yml"
-      
+      "deploy-nextcloud.yml"
     )
 
     # Run each playbook

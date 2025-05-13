@@ -16,27 +16,7 @@
 2. add this on the bottom of the file: PasswordAuthentication yes
 3. sudo service ssh restart
 
-**Install nextcloud aio on switch**
-
-```bash
-sudo mkdir /mnt/nextcloud_data
-
-sudo docker run \
---init \
---sig-proxy=false \
---name nextcloud-aio-mastercontainer \
---restart always \
---publish 80:80 \
---publish 8080:8080 \
---publish 8443:8443 \
---volume /mnt/nextcloud_data:/mnt/ncdata \
---volume nextcloud_aio_mastercontainer:/mnt/docker-aio-config \
---volume /var/run/docker.sock:/var/run/docker.sock:ro \
---env NEXTCLOUD_DATADIR="/mnt/ncdata" \
-ghcr.io/nextcloud-releases/all-in-one:latest
-```
-
-- Passphrase: overshoot flier dish securely case uncharted crepe gerbil
+**Enable Nginx DNS to access AWS**
 
 AWS IAM Policies:
 
@@ -65,15 +45,6 @@ AWS IAM User (First create):
 - Generate: Access key and Secret access key
 
 **Backup using rsync**
-
-ls-mediaserver: 
-
-```bash
-ssh-keygen -t rsa -b 4096
-crontab -e
-```
-
-cronjob: 0 * * * * rsync -avz --delete /mnt/nextcloud_data/ ubuntu-mirror@172.16.0.7:/home/ubuntu-mirror/backup/nextcloud_data/
 
 ubuntu-mirror: 
 
