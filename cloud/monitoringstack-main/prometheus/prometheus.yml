@@ -3,7 +3,13 @@ global:
   scrape_interval:     15s # By default, scrape targets every 15 seconds.
   evaluation_interval: 15s # By default, scrape targets every 15 seconds.
   # scrape_timeout is set to the global default (10s).
-
+alerting:
+  alertmanagers:
+   - static_configs:
+     - targets:
+        - alertmanager:9093
+rule_files:
+ - rules.yml
 # A scrape configuration containing exactly one endpoint to scrape:
 # Here it's Prometheus itself.
 scrape_configs:
@@ -30,10 +36,17 @@ scrape_configs:
     static_configs:
       - targets:
         - node-exporter:9100
-###########################################################################
-###############################CLOUD SETTINGS##############################
-###########################################################################
 
+  - job_name: 'uptime'
+    scrape_interval: 30s
+    scheme: http
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: 
+          - 192.168.0.10:3001
+    basic_auth: # Only needed if authentication is enabled (default) 
+      username: viktor
+      password: wosm2025  
 #########################
 ####INTERNAL MACHINE#####
 #########################        
@@ -87,7 +100,6 @@ scrape_configs:
       - targets:
         - 192.168.0.1:9100
 
-
   - job_name: pfsense-cloud
     scrape_interval: 15s
     static_configs:
@@ -100,14 +112,6 @@ scrape_configs:
       - targets:
         - 192.168.20.1:6060
 
-###########################################################################
-##############################ONPREM SETTINGS##############################
-###########################################################################
-
-
-#########################
-#####NETWORK ROUTERS#####
-######################### 
   - job_name: opnsense-onPrem
     scrape_interval: 15s
     static_configs:
@@ -119,32 +123,3 @@ scrape_configs:
     static_configs:
       - targets:
         - 10.16.16.2:9100
-
-
-#########################
-#### daloradius VM ######
-######################### 
-- job_name: daloradius
-scrape_interval: 15s
-static_configs:
-  - targets:
-    - 172.16.0.3:9100
-    
-#########################
-###### gitea VM #########
-######################### 
-- job_name: gitea
-scrape_interval: 15s
-static_configs:
-  - targets:
-    - 172.16.0.6:9100
-   
-#########################
-###### WAZUH VM #########
-######################### 
-- job_name: daloradius
-scrape_interval: 15s
-static_configs:
-  - targets:
-    - 172.16.0.5:9100
-       

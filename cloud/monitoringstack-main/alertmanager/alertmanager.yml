@@ -1,0 +1,21 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: webhook_receiver
+  group_wait: 5s
+  group_interval: 1m
+  repeat_interval: 3h
+
+receivers:
+  - name: webhook_receiver
+    discord_configs:
+      - webhook_url: 'https://discord.com/api/webhooks/1372184306687934535/BVN33BCD4ZNEXNRg-Wk9oJgdvNtesa4-WoYxyezRVxfS78DxICWgJkCPed5UYo0U5CVb'
+        send_resolved: true
+        title: |
+          [{{ .Status }}] {{ .CommonLabels.alertname }}
+        message: |
+          **Instance:** {{ .CommonLabels.monitor_name }}
+          **Severity:** {{ if .CommonLabels.severity }}{{ .CommonLabels.severity }}{{ else }}critical{{ end }}
+          **Summary:** {{ .CommonAnnotations.summary }}
+          **Details:** {{ .CommonAnnotations.description }}
