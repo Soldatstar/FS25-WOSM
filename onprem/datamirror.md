@@ -10,7 +10,7 @@
 6. user: ubuntu-mirror:wosm2025
 7. reboot
 
-**Enable ssh without ssh**
+**Enable ssh without key validation**
 
 1. sudo nano /etc/ssh/sshd_config
 2. add this on the bottom of the file: PasswordAuthentication yes
@@ -46,17 +46,53 @@ AWS IAM User (First create):
 
 **Backup using rsync**
 
-ubuntu-mirror: 
-
 ```bash
-echo ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCLmNQ8TchPdhqVA0h11f9fa0dAdssv7UaG4SoAz3Weq1l4ZDQf7lqHDrWCFxHoQE4G8Gk0+JRDMHdZCBUaw+eSez3OMommh6Du6Qt6qmrCCwmhFnDZJBGwXJJXQCC06I+0fKa0yeORNNh9lYcL0fURZSXV40Hw4GD8rdnjFoXLaQ2ZI8DuiaGx1gMv38RUQEVzEfUaTOfyC9Cahc3uQR1HOU8MXGIuxnjqxnWf7iLJDPRBhjzVnVnDnLxsy2C8wO7MXA6eXoeWWCVNrX1AQ8mbOut9FSLlAbEM8YZTLj8UXJiaXHFFUOBp8PeTkrRL7/mt1djsmC/qDy5y738IbS//09nQiXm5D6BunIajnUN7wIFe2hFkNjyfFixFumyfAXgL4FDRKJBysw/8ANJ2mh0AXi/YQ461stFcICmcDu6FLU29/H1ryu/Wi5sBOGEzCA58J8mk1mFTdmHhLmF8QU2M9snOxFPKB/GYZqJeLtK93tAaW9R3HcDew5xLp0q+Wtj8kvddIuJtuvP4RRgFABAENkqoPctcA6DgsRrgAqoq4/MPyRCvnwBcYA5dfMcM1ljs6ebnOhpjltTSu9sgGQMcgRkvNYAn5wrIyrDIaDSTX1SG8BfnYZk61dGAVQoqPFijiUcFhOKVLsy6Emy1Dc+FpXC0KYsy2f8JO8d/8j5UQQ== debian@ls-mediaserver > .ssh/authorized_keys
+echo <pub-key from media server> > .ssh/authorized_keys
 ```
 
 ```bash
 mkdir -p /home/ubuntu-mirror/backup/nextcloud_data
 ```
 
-tempnote: 
--> 192.168.20.10:81
--> viktor.w50@gmail.com
--> wosm2025 
+**HTTP File Server**
+
+```bash
+sudo nano /etc/systemd/resolved.conf
+```
+
+```
+DNS=10.51.2.232
+```
+
+```bash
+sudo systemctl restart systemd-resolved
+sudo apt update
+sudo apt install build-essential
+curl https://sh.rustup.rs -sSf | sh (need to tipe enter)
+source $HOME/.cargo/env
+cargo install miniserve
+sudo nano /etc/systemd/system/miniserve.service
+```
+
+```
+[Unit]
+Description=Miniserve file server
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/home/ubuntu-mirror/.cargo/bin/miniserve /home/ubuntu-mirror/backup/nextcloud_data --interfaces 0.0.0.0 --port 8080
+Restart=on-failure
+User=ubuntu-mirror
+WorkingDirectory=/home/ubuntu-mirror
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+sudo systemctl daemon-reexec
+sudo systemctl daemon-reload
+sudo systemctl enable miniserve
+sudo systemctl start miniserve
+```
