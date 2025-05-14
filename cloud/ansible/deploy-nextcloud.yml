@@ -29,6 +29,24 @@
         groups: www-data
         append: yes
 
+    - name: Add user debian to systemd-journal group
+      user:
+        name: debian
+        groups: systemd-journal
+        append: yes
+
+    - name: Change permissions recursively for db directory
+      ansible.builtin.file:
+        path: /home/debian/nextcloud/db
+        mode: 'g+rx'
+        recurse: yes
+
+    - name: Change group recursively for db directory
+      ansible.builtin.file:
+        path: /home/debian/nextcloud/db
+        group: systemd-journal
+        recurse: yes
+
     - name: Ensure SSH key is present
       become_user: debian
       openssh_keypair:
