@@ -28,13 +28,13 @@ groups:
   - name: High Latency
     rules:
       - alert: HighResponseTime
-        expr: monitor_response_time{monitor_type=~"http|ping"} > 200
+        expr: monitor_response_time{monitor_type=~"http|ping"} > 180
         for: 15s
         labels:
           severity: warning
         annotations:
           summary: "High response time on {{ $labels.monitor_name }}"
-          description: "Response time is >200ms (currently {{ $value }}ms) for more than 15s."
+          description: "Response time is >180ms (currently {{ $value }}ms) for more than 15s."
 
       - alert: ElevatedLatencyRatio
         expr: |
@@ -43,7 +43,7 @@ groups:
             /
             count_over_time(monitor_response_time{monitor_type=~"http|ping"}[5m])
           ) > 200
-        for: 2m
+        for: 5m
         labels:
           severity: warning
         annotations:
