@@ -42,3 +42,43 @@
 7. DHCP 99:172.16.0.10-172.16.0.254, 10:172.16.10.10-172.16.10.254 20:172.16.20.10-172.16.20.254 30:172.16.30.10-172.16.30.254
 8. 192.168.1.1 WEB GUI admin:pfsense -> any rule on any vlan (for now)
 9. Services>DHCP Server: DNS 10.51.2.232 for each vlan (for now)
+
+**Wazuh-Agent**
+
+```bash
+pkg update
+pkg install nano
+nano /usr/local/etc/pkg/repos/pfSense.conf
+nano /usr/local/etc/pkg/repos/FreeBSD.conf
+```
+
+Change: 
+
+```
+FreeBSD: { enabled: yes }
+```
+
+```bash
+pkg update
+pkg search wazuh-agent
+pkg install wazuh-agent-x.xx.x
+cp /etc/localtime /var/ossec/etc
+cp /var/ossec/etc/ossec.conf{.sample,}
+nano /var/ossec/etc/ossec.conf
+```
+
+Change: 
+
+```
+<server>
+    <address>172.16.0.5</address>
+    <port>1514</port>
+    <protocol>tcp</protocol>
+</server>
+```
+
+```bash
+sysrc wazuh_agent_enable="YES"
+ln -s /usr/local/etc/rc.d/wazuh-agent /usr/local/etc/rc.d/wazuh-agent.sh
+service wazuh-agent start
+```
