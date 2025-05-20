@@ -52,7 +52,11 @@ int range f0/1-24
 switchport mode access
 int f0/1
 switchport access vlan 99
-int range f0/2-24
+int f0/2
+switchport access vlan 10
+int f0/3
+switchport access vlan 20
+int range f0/4-24
 authentication port-control auto
 dot1x pae authenticator
 

@@ -9,9 +9,9 @@ sudo nano /etc/network/interfaces
 ```
 auto enp0s3
 iface eth0 inet static
-address 172.16.0.6
+address 172.16.20.6
 netmask 255.255.255.0
-gateway 172.16.0.1
+gateway 172.16.20.1
 ```
 
 **Login**
