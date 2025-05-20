@@ -4,7 +4,7 @@
   become: true
   remote_user: debian
   vars:
-    rsync_target: "ubuntu-mirror@172.16.0.7:/home/ubuntu-mirror/backup/nextcloud_data/"
+    rsync_target: "ubuntu-mirror@172.16.10.7:/home/ubuntu-mirror/backup/nextcloud_data/"
     ssh_key_path: "/home/debian/.ssh/id_rsa"
 
   tasks:

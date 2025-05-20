@@ -1,21 +1,21 @@
 
 
-| Net-Komponente | Zweck                          | Lab Interface    | VirtualBox                                |
-| -------------- | ------------------------------ | ---------------- | ----------------------------------------- |
-| opnsense       | VPN, Internet-Routing          | RED -> netlab    | WAN: Bridge, LAN: Inter Firewall          |
-| pfsense        | Firewall, DPI, Zonen-Filterung | GREEN -> Switch  | WAN: Intern Firewall, LAN: Bridge         |
-| vms            | Services                       | Switch -> YELLOW | VM Int.: Bridge (Each VM becomes its own) |
+| Net-Komponente | Zweck                          | Lab Interface               | VirtualBox                                |
+| -------------- | ------------------------------ | --------------------------- | ----------------------------------------- |
+| opnsense       | VPN, Internet-Routing          | USB -> netlab               | WAN: Bridge, LAN: Intern Firewall         |
+| pfsense        | Firewall, Zonen-Filterung      | GREEN -> Switch             | WAN: Intern Firewall, LAN: Bridge         |
+| vms            | Services                       | Switch -> YELLOW, BLUE, RED | VM Int.: Bridge (Each VM becomes its own) |
 
 
 
-- 172.16.0.1: pfsense
-- 172.16.0.3: radius
-- 172.16.0.4: switch
-- 172.16.0.5: wazuh
-- 172.16.20.6: gitea
-- 172.16.10.7: mirror
+- 172.16.0.1: pfsense | ssh admin@172.16.0.1 passwd: pfsense
+- 172.16.0.3: radius | ssh -oHostKeyAlgorithms=+ssh-rsa -oPubkeyAcceptedAlgorithms=+ssh-rsa root@172.16.0.3 passwd: daloradius
+- 172.16.0.4: switch | ssh -o KexAlgorithms=+diffie-hellman-group1-sha1 -o Ciphers=+aes128-cbc -o MACs=+hmac-sha1 -o HostKeyAlgorithms=+ssh-rsa wosm@172.16.0.4 passwd: aW9pL3mS2tGb8Xz
+- 172.16.0.5: wazuh | ssh wazuh-user@172.16.0.5 passwd: wazuh
+- 172.16.20.6: gitea | ssh debian-gitea@172.16.20.6 passwd: wosm2025
+- 172.16.10.7: mirror | ssh ubuntu-mirror@172.16.10.7 passwd: wosm2025
 
-- 10.16.16.1: opnsense
+- 10.16.16.1: opnsense | ssh root@10.16.16.1 passwd: opnsense
 
 # pfSense with Virtualbox
 

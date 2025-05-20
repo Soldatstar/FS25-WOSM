@@ -38,3 +38,12 @@ insert into radgroupreply (groupname, attribute, op, value) values ('Vlan30', 'T
 
 1. Management>Nas>New Nas: IP 172.16.0.4, NAS Type cisco, NAS Secret Pasw0rd+ 
 2. Management>User>Nwe User: damjan:damjan, Group: Vlan99
+
+
+**Wazuh-Agent**
+
+```bash
+sudo WAZUH_MANAGER='172.16.0.5' dpkg -i ./wazuh-agent_4.12.0-1_i386.deb
+/etc/init.d/wazuh-agent start
+update-rc.d wazuh-agent defaults
+```
