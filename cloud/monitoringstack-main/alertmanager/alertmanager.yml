@@ -1,0 +1,45 @@
+route:
+  receiver: msteams-v2
+  group_wait: 5s
+  group_interval: 1m
+  repeat_interval: 3h
+
+  group_by: ['alertname', 'monitor_name', 'instance', 'severity']
+
+  routes:
+    - receiver: webhook_receiver
+      continue: true
+    - receiver: msteams-v2
+      continue: true
+
+receivers:
+  - name: msteams-v2
+    msteamsv2_configs:
+      - webhook_url: 'https://prod-07.westeurope.logic.azure.com:443/workflows/81d335336a0948a4bb7c4b6927aa84db/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=SX6dYOrl3s5AaLsyB9WYdFRTKQUz8uMNpxhnXsGzd6w'
+        send_resolved: true
+        title: '[{{ .Status }}] {{ .CommonLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          **Monitor:** {{ .Labels.monitor_name }}
+
+          **Severity:** {{ .Labels.severity }}
+
+          **Summary:** {{ .Annotations.summary }}
+
+          **Details:** {{ .Annotations.description }}
+
+          {{ end }}
+
+  - name: webhook_receiver
+    discord_configs:
+      - webhook_url: 'https://discord.com/api/webhooks/1372184306687934535/BVN33BCD4ZNEXNRg-Wk9oJgdvNtesa4-WoYxyezRVxfS78DxICWgJkCPed5UYo0U5CVb'
+        send_resolved: true
+        title: '[{{ .Status }}] {{ .CommonLabels.alertname }}'
+        message: |
+          {{ range .Alerts }}
+          **Monitor:** {{ .Labels.monitor_name }}
+          **Severity:** {{ .Labels.severity }}
+          **Summary:** {{ .Annotations.summary }}
+          **Details:** {{ .Annotations.description }}
+
+          {{ end }}

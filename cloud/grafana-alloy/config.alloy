@@ -1,0 +1,104 @@
+// ###############################
+// #### Logging-Only Alloy Configuration ####
+// ###############################
+
+// ###############################
+// #### Docker Logs Discovery & Collection ####
+// ###############################
+
+discovery.docker "linux" {
+  host = "unix:///var/run/docker.sock"
+}
+
+discovery.relabel "logs_integrations_docker" {
+  targets = []
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "service_name"
+  }
+}
+
+loki.source.docker "default" {
+  host           = "unix:///var/run/docker.sock"
+  targets        = discovery.docker.linux.targets
+  labels         = { platform = "docker", instance = sys.env("ALLOY_HOSTNAME") }
+  relabel_rules  = discovery.relabel.logs_integrations_docker.rules
+  forward_to     = [ loki.write.local.receiver ]
+}
+
+// ###############################
+// #### Systemd Journal & File Logs Collection ####
+// ###############################
+
+loki.relabel "journal_with_hostname" {
+  forward_to = []
+
+  rule {
+    source_labels = ["__journal__systemd_unit"]
+    target_label  = "unit"
+  }
+  rule {
+    source_labels = ["__journal__hostname"]
+    target_label  = "hostname"
+  }
+}
+
+loki.source.journal "logs_integrations_system_journal" {
+  max_age        = "6h0m0s"
+  labels         = { component = "alloy.journal" }
+  relabel_rules  = loki.relabel.journal_with_hostname.rules
+  forward_to     = [ loki.write.local.receiver ]
+}
+
+discovery.relabel "logs_integrations_system_journal" {
+  targets = []
+  rule {
+    source_labels = ["__journal__systemd_unit"]
+    target_label  = "unit"
+  }
+  rule {
+    source_labels = ["__journal__boot_id"]
+    target_label  = "boot_id"
+  }
+  rule {
+    source_labels = ["__journal__transport"]
+    target_label  = "transport"
+  }
+  rule {
+    source_labels = ["__journal_priority_keyword"]
+    target_label  = "level"
+  }
+}
+
+local.file_match "logs_integrations_system_files" {
+  path_targets = [
+    {
+      address  = "localhost",
+      path     = "/var/log/{syslog,messages,*.log}",
+      instance = sys.env("ALLOY_HOSTNAME"),
+      job      = "system/logs",
+    },
+  ]
+}
+
+loki.source.file "logs_integrations_system_files" {
+  targets    = local.file_match.logs_integrations_system_files.targets
+  forward_to = [ loki.write.local.receiver ]
+}
+
+// ###############################
+// #### Loki Write Configuration ####
+// ###############################
+
+loki.write "local" {
+  endpoint {
+    url = "http://192.168.0.10:3100/loki/api/v1/push"
+  }
+}
+
+// ###############################
+// #### Live Debugging ####
+// ###############################
+
+livedebugging {}

@@ -1,0 +1,30 @@
+---
+- name: Deploy metrics container on webserver
+  hosts: 
+  - gitea
+  become: true
+  remote_user: debian
+  tasks:
+    - name: Create metrics directory
+      ansible.builtin.file:
+        path: /home/debian/metrics
+        state: directory
+        owner: debian
+        group: debian
+        mode: '0755'
+
+    - name: Copy Docker Compose file to remote
+      ansible.builtin.copy:
+        src: ../composeCollection/cadvisor-nodeexporter.yml
+        dest: /home/debian/metrics/docker-compose.yml
+        owner: debian
+        group: debian
+        mode: '0644'
+
+    - name: Start metrics containers
+      community.docker.docker_compose_v2:
+        project_name: metrics
+        project_src: /home/debian/metrics
+        files:
+          - docker-compose.yml
+        state: present

@@ -1,0 +1,37 @@
+---
+- name: Deploy DDNS container
+  hosts: monitoringserver
+  become: true
+  remote_user: debian
+  tasks:
+    - name: Create DDNS directory
+      ansible.builtin.file:
+        path: /home/debian/ddns
+        state: directory
+        owner: debian
+        group: debian
+        mode: '0755'
+
+    - name: Copy Docker Compose file to remote
+      ansible.builtin.copy:
+        src: ../composeCollection/ddns-r53.yml
+        dest: /home/debian/ddns/docker-compose.yml
+        owner: debian
+        group: debian
+        mode: '0644'
+
+    - name: Copy .env file to remote
+      ansible.builtin.copy:
+        src: ../composeCollection/ddns-r53.env
+        dest: /home/debian/ddns/ddns-r53.env
+        owner: debian
+        group: debian
+        mode: '0600'
+
+    - name: Start DDNS container
+      community.docker.docker_compose_v2:
+        project_name: ddns
+        project_src: /home/debian/ddns
+        files:
+          - docker-compose.yml
+        state: present
