@@ -42,3 +42,14 @@ Delete ip from dhcp:
 ```bash
 ip -4 addr show dev eth0 | awk '/inet / {print $2} | grep -v '^172\.16\.0\.5' | xargs -n 1 sudo ip addr del $1 dev eth0
 ```
+
+**Install docker**
+
+```bash
+sudo dnf update
+sudo dnf install docker
+sudo systemctl start docker
+sudo systemctl enable docker
+sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
+```
