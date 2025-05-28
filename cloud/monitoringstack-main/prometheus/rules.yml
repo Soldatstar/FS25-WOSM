@@ -1,69 +1,33 @@
 groups:
-  - name: Count greater than 5
+  
+  # Alerting System Level
+  - name: system-alerts
     rules:
-      - alert: CountGreaterThan5
-        expr: ping_request_count > 5
-        for: 5s
-
-  - name: Service Down
-    rules:
-      - alert: MonitorDown
-        expr: monitor_status{monitor_type!="group"} == 0
-        for: 30s
-        labels:
-          severity: critical
-        annotations:
-          summary: "{{ $labels.monitor_name }} is DOWN"
-          description: "Monitor {{ $labels.monitor_name }} (type={{ $labels.monitor_type }}) has been DOWN for more than 30s."
-
-      - alert: MonitorPending
-        expr: monitor_status{monitor_type!="group"} == 2
+      - alert: HighCPUUsage
+        expr: (1 - avg(irate(node_cpu_seconds_total{mode="idle"}[5m])) by (instance,job)) * 100 > 50
         for: 5m
         labels:
           severity: warning
         annotations:
-          summary: "{{ $labels.monitor_name }} is PENDING"
-          description: "Monitor {{ $labels.monitor_name }} has been in PENDING status for over 5m. Check if checks are stuck."
+          summary: "High CPU usage on {{ $labels.job }}"
+          description: "CPU usage has been above 50% for at least 5 minutes on {{ $labels.instance }})."
 
-  - name: High Latency
-    rules:
-      - alert: HighResponseTime
-        expr: monitor_response_time{monitor_type=~"http|ping"} > 180
-        for: 15s
-        labels:
-          severity: warning
-        annotations:
-          summary: "High response time on {{ $labels.monitor_name }}"
-          description: "Response time is >180ms (currently {{ $value }}ms) for more than 15s."
-
-      - alert: ElevatedLatencyRatio
-        expr: |
-          (
-            sum_over_time(monitor_response_time{monitor_type=~"http|ping"}[5m])
-            /
-            count_over_time(monitor_response_time{monitor_type=~"http|ping"}[5m])
-          ) > 200
+      - alert: HighMemoryUsage
+        expr: 100 * (1 - ((avg_over_time(node_memory_MemFree_bytes[5m]) + avg_over_time(node_memory_Cached_bytes[5m]) + avg_over_time(node_memory_Buffers_bytes[5m])) / avg_over_time(node_memory_MemTotal_bytes[5m]))) > 50
         for: 5m
         labels:
           severity: warning
         annotations:
-          summary: "High average latency"
-          description: "Average response time over the last 5m exceeds 200ms."
+          summary: "High memory usage on {{ $labels.job }}"
+          description: "Memory usage is above 50% for more than 5 minutes on {{ $labels.instance }}."
 
-  - name: Uptime SLA Breach
-    rules:
-      - alert: UptimeBelowSLA
-        expr: |
-          (
-            sum_over_time(monitor_status{monitor_type!="group"}[1h])
-            /
-            count_over_time(monitor_status{monitor_type!="group"}[1h])
-          ) < 0.99
-        for: 10m
+      - alert: NoMetrics
+        expr: up == 0
+        for: 1s
         labels:
           severity: critical
         annotations:
-          summary: "Uptime below 99% SLA"
-          description: >
-            Uptime for all services has dropped below 99% in the past hour.
-            Please investigate any outages or intermittent failures.
+          summary: "No metrics found on {{ $labels.job }}"
+          description: "The instance {{ $labels.instance }} has no metrics exposed."
+
+  # Alerting Service Level

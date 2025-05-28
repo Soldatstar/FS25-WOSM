@@ -140,6 +140,18 @@ scrape_configs:
       - targets:
         - 172.16.10.7:9110
 
+  - job_name: cadvisor gitea
+    scrape_interval: 15s
+    static_configs:
+      - targets:
+        - 172.16.20.6:9112
+
+  - job_name: node-exporter gitea
+    scrape_interval: 15s
+    static_configs:
+      - targets:
+        - 172.16.20.6:9110      
+
   - job_name: cadvisor wazuh
     scrape_interval: 15s
     static_configs:
