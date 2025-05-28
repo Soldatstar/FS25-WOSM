@@ -123,3 +123,49 @@ scrape_configs:
     static_configs:
       - targets:
         - 10.16.16.2:9100
+
+#########################
+#####     Onprem    #####
+######################### 
+
+  - job_name: cadvisor mirror
+    scrape_interval: 15s
+    static_configs:
+      - targets:
+        - 172.16.10.7:9112
+
+  - job_name: node-exporter mirror
+    scrape_interval: 15s
+    static_configs:
+      - targets:
+        - 172.16.10.7:9110
+
+  - job_name: cadvisor gitea
+    scrape_interval: 15s
+    static_configs:
+      - targets:
+        - 172.16.20.6:9112
+
+  - job_name: node-exporter gitea
+    scrape_interval: 15s
+    static_configs:
+      - targets:
+        - 172.16.20.6:9110      
+
+  - job_name: cadvisor wazuh
+    scrape_interval: 15s
+    static_configs:
+      - targets:
+        - 172.16.0.5:9112
+
+  - job_name: node-exporter wazuh
+    scrape_interval: 15s
+    static_configs:
+      - targets:
+        - 172.16.0.5:9110
+
+  - job_name: node-exporter radius
+    scrape_interval: 15s
+    static_configs:
+      - targets:
+        - 172.16.0.3:9110

@@ -47,3 +47,16 @@ sudo WAZUH_MANAGER='172.16.0.5' dpkg -i ./wazuh-agent_4.12.0-1_i386.deb
 /etc/init.d/wazuh-agent start
 update-rc.d wazuh-agent defaults
 ```
+
+**Node exporter**
+
+```bash
+tar -C /usr/local -xzf go1.18.linux-386.tar.gz
+export PATH=$PATH:/usr/local/go/bin
+tar xzf node_exporter.tar.gz 
+cd node_exporter/
+git checkout v1.3.1
+go mod tidy
+GOARCH=386 GOOS=linux go build -buildvcs=false -o node_exporter .
+./node_exporter
+```
