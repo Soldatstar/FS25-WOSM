@@ -1,0 +1,13 @@
+ervices:
+  clamav-exporter:
+    image: rekzi/clamav-prometheus-exporter:latest
+    container_name: clamav-exporter
+    #network_mode: host
+    command:
+      - "-clamav-address=127.0.0.1"
+      - "-clamav-port=3310"
+      - "-log-level=info"
+      - "-network=tcp"
+    ports:
+      - "9093:9810"
+    restart: unless-stopped

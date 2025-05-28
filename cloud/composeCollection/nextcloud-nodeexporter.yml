@@ -1,0 +1,11 @@
+services:
+  nextcloud-exporter:
+    image: ghcr.io/xperimental/nextcloud-exporter:latest
+    container_name: nextcloud-exporter
+    command:
+      - "--server=https://nextcloud.wosm3.cyberlab.fhnw.ch"
+      - "--username=admin"
+      - "--password=wosm2025wosm2025"
+    ports:
+      - "9100:9205"
+    restart: unless-stopped
