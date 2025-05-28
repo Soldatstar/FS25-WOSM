@@ -1,10 +1,36 @@
 groups:
-  - name: Count greater than 5
-    rules:
-      - alert: CountGreaterThan5
-        expr: ping_request_count > 5
-        for: 5s
 
+  # Alerting System Level
+  - name: system-alerts
+    rules:
+      - alert: HighCPUUsage
+        expr: (1 - avg(irate(node_cpu_seconds_total{mode="idle"}[5m])) by (instance,job)) * 100 > 50
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage on {{ $labels.job }}"
+          description: "CPU usage has been above 50% for at least 5 minutes on {{ $labels.instance }})."
+
+      - alert: HighMemoryUsage
+        expr: 100 * (1 - ((avg_over_time(node_memory_MemFree_bytes[5m]) + avg_over_time(node_memory_Cached_bytes[5m]) + avg_over_time(node_memory_Buffers_bytes[5m])) / avg_over_time(node_memory_MemTotal_bytes[5m]))) > 50
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage on {{ $labels.job }}"
+          description: "Memory usage is above 50% for more than 5 minutes on {{ $labels.instance }}."
+
+      - alert: NoMetrics
+        expr: up == 0
+        for: 1s
+        labels:
+          severity: critical
+        annotations:
+          summary: "No metrics found on {{ $labels.job }}"
+          description: "The instance {{ $labels.instance }} has no metrics exposed."
+
+  # Alerting Service Level
   - name: Service Down
     rules:
       - alert: MonitorDown
@@ -28,13 +54,13 @@ groups:
   - name: High Latency
     rules:
       - alert: HighResponseTime
-        expr: monitor_response_time{monitor_type=~"http|ping"} > 180
+        expr: monitor_response_time{monitor_type=~"http|ping"} > 350
         for: 15s
         labels:
           severity: warning
         annotations:
           summary: "High response time on {{ $labels.monitor_name }}"
-          description: "Response time is >180ms (currently {{ $value }}ms) for more than 15s."
+          description: "Response time is >350ms (currently {{ $value }}ms) for more than 15s."
 
       - alert: ElevatedLatencyRatio
         expr: |
@@ -42,13 +68,13 @@ groups:
             sum_over_time(monitor_response_time{monitor_type=~"http|ping"}[5m])
             /
             count_over_time(monitor_response_time{monitor_type=~"http|ping"}[5m])
-          ) > 200
+          ) > 300
         for: 5m
         labels:
           severity: warning
         annotations:
           summary: "High average latency"
-          description: "Average response time over the last 5m exceeds 200ms."
+          description: "Average response time over the last 5m exceeds 300ms."
 
   - name: Uptime SLA Breach
     rules:
