@@ -53,3 +53,30 @@ sudo systemctl enable docker
 sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
 sudo chmod +x /usr/local/bin/docker-compose
 ```
+
+**Wazuh Docker Listener**
+
+```bash
+python3 --version
+sudo apt update
+sudo apt install python3-pip
+sudo pip3 install docker==7.1.0 urllib3==1.26.20 requests==2.32.2 --break-system-packages
+sudo nano /var/ossec/etc/ossec.conf
+sudo usermod -aG docker wazuh
+```
+
+```
+<wodle name="docker-listener">
+  <disabled>no</disabled>
+</wodle>
+```
+
+
+```bash
+sudo systemctl restart wazuh-agent
+sudo systemctl status wazuh-agent
+```
+
+```bash
+for i in {1..20}; do sudo docker run --rm alpine echo "Hello from container"; done
+```
