@@ -80,3 +80,93 @@ sudo systemctl status wazuh-agent
 ```bash
 for i in {1..20}; do sudo docker run --rm alpine echo "Hello from container"; done
 ```
+
+**Wazuh Active Response**
+
+_Blocking SSH brute-force attack with Active Response_
+
+```bash
+sudo nano /var/ossec/etc/ossec.conf
+sudo systemctl restart wazuh-manager
+```
+
+```
+<ossec_config>
+  <command>
+    <name>firewall-drop</name>
+    <executable>firewall-drop</executable>
+    <timeout_allowed>yes</timeout_allowed>
+  </command>
+
+  <active-response>
+    <disabled>no</disabled>
+    <command>firewall-drop</command>
+    <location>local</location>
+    <rules_id>5763</rules_id>
+    <timeout>180</timeout>
+  </active-response>
+</ossec_config>
+```
+
+Test: `sudo hydra -t 4 -l ubuntu-mirror -P passwd_list.txt 172.16.10.7 ssh`
+
+Resultat in Wazuh: 
+1. sshd: brute force trying to get access to the system. Authentication failed.
+2. Host Blocked by firewall-drop Active Response
+
+_Disabling a Linux user account with Active Response_
+
+```bash
+sudo nano /var/ossec/etc/rules/local_rules.xml
+sudo nano /var/ossec/etc/ossec.conf
+sudo systemctl restart wazuh-manager
+```
+
+local_rules.xml
+
+```
+<group name="pam,syslog,">
+  <rule id="120100" level="10" frequency="3" timeframe="120">
+    <if_matched_sid>5503</if_matched_sid>
+    <description>Possible password guess on $(dstuser): 3 failed logins in a short period of time</description>
+    <mitre>
+      <id>T1110</id>
+    </mitre>
+  </rule>
+</group>
+```
+
+ossec.conf
+
+```
+<ossec_config>
+  <command>
+    <name>disable-account</name>
+    <executable>disable-account</executable>
+    <timeout_allowed>yes</timeout_allowed>
+  </command>
+
+  <active-response>
+    <disabled>no</disabled>
+    <command>disable-account</command>
+    <location>local</location>
+    <rules_id>120100</rules_id>
+    <timeout>300</timeout>
+  </active-response>
+</ossec_config>
+```
+
+Test:
+
+Gib von ubuntu-mirror aus dreimal fuer block-me falsches Passwort ein. (Richtiges: block)
+
+```bash
+su block-me
+su block-me
+su block-me
+sudo passwd --status block-me
+```
+
+Resultat in Wazuh: 
+1. Possible password guess on block-me: 3 failed logins in a short period of time
+2. Active response: active-response/bin/disable-account - add
