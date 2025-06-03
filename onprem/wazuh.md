@@ -114,6 +114,12 @@ Resultat in Wazuh:
 1. sshd: brute force trying to get access to the system. Authentication failed.
 2. Host Blocked by firewall-drop Active Response
 
+
+_Directory- und Datei-Bruteforcing (No Wazuh, Crowdsec used)_
+
+Test: `gobuster dir -u https://nextcloud.wosm3.cyberlab.fhnw.ch -w dsstorewordlist.txt`
+
+
 _Disabling a Linux user account with Active Response_
 
 ```bash
