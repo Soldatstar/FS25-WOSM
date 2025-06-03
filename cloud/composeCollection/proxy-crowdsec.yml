@@ -1,0 +1,32 @@
+services:
+  app:
+    image: 'jc21/nginx-proxy-manager:latest'
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '81:81'
+      - '443:443'
+    volumes:
+      - ./data:/data
+      - ./letsencrypt:/etc/letsencrypt
+
+  crowdsec:
+    image: crowdsecurity/crowdsec
+    restart: always
+    network_mode: host
+    environment:
+      COLLECTIONS: "crowdsecurity/nginx-proxy-manager"
+      DISABLE_LOCAL_API: true
+      LOCAL_API_URL: "http://192.168.20.1:8088"
+      AGENT_USERNAME: "proxy"
+      AGENT_PASSWORD: "test"
+      GID: "${GID-1000}"
+    depends_on:
+      - 'app'
+    volumes:
+      - ./data/logs:/var/log/nginx
+      - crowdsec-db:/var/lib/crowdsec/data/
+      - crowdsec-config:/etc/crowdsec/
+volumes:
+  crowdsec-db:
+  crowdsec-config:

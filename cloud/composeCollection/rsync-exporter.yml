@@ -1,0 +1,9 @@
+services:
+  rsync_exporter:
+    image: lmerza/rsync-exporter:latest
+    container_name: rsync_exporter
+    restart: unless-stopped
+    ports:
+      - 9150:9150
+    volumes:
+      - /home/debian/metrics-exporter/rsync/rsync.log:/logs/rsync.log:ro
