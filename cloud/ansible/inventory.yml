@@ -1,23 +1,17 @@
 all:
   hosts:
-    opnsense:
-      ansible_host: 86.119.31.27
-      ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
-    pfsense:
-      ansible_host: 86.119.30.203
-      ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
     mediaserver:
-      ansible_host: 86.119.31.202
+      ansible_host: 86.119.46.59
       ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
-      mac_address: fa:16:3e:0c:e1:db
+      mac_address: fa:16:3e:73:1c:30
       via_ip: 192.168.10.1
     monitoringserver:
-      ansible_host: 86.119.31.70
+      ansible_host: 86.119.48.179
       ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
-      mac_address: fa:16:3e:ee:ed:d7
+      mac_address: fa:16:3e:1c:c4:e5
       via_ip: 192.168.0.1
     webserver:
-      ansible_host: 86.119.30.218
+      ansible_host: 86.119.49.61
       ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
-      mac_address: fa:16:3e:94:62:63
+      mac_address: fa:16:3e:d2:e8:bd
       via_ip: 192.168.20.1

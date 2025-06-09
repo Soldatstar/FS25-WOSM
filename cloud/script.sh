@@ -9,7 +9,7 @@ ANSIBLE_DIR="$BASE_DIR/ansible"
 INVENTORY_FILE="$ANSIBLE_DIR/inventory.yml"
 # Regions to process
 #REGIONS=("ZH" "LS")
-REGIONS=("LS")
+REGIONS=("ZH")
 
 # Function to generate dynamic Ansible inventory file
 generate_inventory() {
@@ -25,7 +25,7 @@ EOF
 
     for region in "${REGIONS[@]}"; do
         cd "$TERRAFORM_DIR/$region" || exit
-        yes yes | terraform apply -refresh-only
+        #yes yes | terraform apply -refresh-only
 
         # Get outputs for current region
         node_floating_output=$(terraform output -json nodes_floating_ips_nodes 2>/dev/null)
@@ -41,12 +41,6 @@ EOF
             done < <(echo "$node_floating_output" | jq -r 'to_entries[] | "\(.key)=\(.value)"')
         fi
 
-        #parse mac address based on this:
-        #mac_addresses_nodes = {
-            # "MediaServer" = "fa:16:3e:e5:f5:e7"
-            # "MonitoringServer" = "fa:16:3e:65:14:66"
-            # "WebServer" = "fa:16:3e:57:d4:e8"
-            # }
         declare -A node_mac_address
         if [[ -n "$node_mac_address_output" && "$node_mac_address_output" != "null" ]]; then
             while IFS="=" read -r key value; do
@@ -58,23 +52,23 @@ EOF
 
         cd "$BASE_DIR"
 
-        # Write Opnsense entry
-        if [[ -n "$opnsense_floating_ip" ]]; then
-            cat <<EOF >> "$INVENTORY_FILE"
-    opnsense:
-      ansible_host: $opnsense_floating_ip
-      ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
-EOF
-        fi
+#         # Write Opnsense entry
+#         if [[ -n "$opnsense_floating_ip" ]]; then
+#             cat <<EOF >> "$INVENTORY_FILE"
+#     opnsense:
+#       ansible_host: $opnsense_floating_ip
+#       ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+# EOF
+#         fi
 
-        # Write Pfsense entry
-        if [[ -n "$pfsense_floating_ip" ]]; then
-            cat <<EOF >> "$INVENTORY_FILE"
-    pfsense:
-      ansible_host: $pfsense_floating_ip
-      ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
-EOF
-        fi
+#         # Write Pfsense entry
+#         if [[ -n "$pfsense_floating_ip" ]]; then
+#             cat <<EOF >> "$INVENTORY_FILE"
+#     pfsense:
+#       ansible_host: $pfsense_floating_ip
+#       ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+# EOF
+#         fi
 
         # Write Node entries with hardcoded `via_ip`
         declare -A via_ips=(["MediaServer"]="192.168.10.1" ["MonitoringServer"]="192.168.0.1" ["WebServer"]="192.168.20.1")
@@ -123,13 +117,13 @@ apply_and_deploy() {
 
     playbooks=(
       "replace_authorized_keys.yml"
-      "network-config.yml"
-      "install-docker.yml"
-      "install-wazuh-agent.yml"
-      "deploy-monitoringstack.yml"
-      "deploy-authentik.yml"
-      "deploy-wordpress.yml"
-      "deploy-nextcloud.yml"
+    #   "network-config.yml"
+    #   "install-docker.yml"
+    #   "install-wazuh-agent.yml"
+    #   "deploy-monitoringstack.yml"
+    #   "deploy-authentik.yml"
+    #   "deploy-wordpress.yml"
+    #   "deploy-nextcloud.yml"
     )
 
     # Run each playbook
@@ -158,12 +152,9 @@ refresh_inventory() {
     echo "Inventory refreshed successfully."
 }
 
-# Option 3: deploy report
-deploy_report(){
-    ansible-playbook -i "$INVENTORY_FILE" "$ANSIBLE_DIR"/deploy_report.yml
-}
 
-# Option 4: Destroy Terraform resources
+
+# Option 3: Destroy Terraform resources
 destroy_resources() {
     for region in "${REGIONS[@]}"; do
         echo "Destroying resources for $region"
@@ -177,14 +168,12 @@ destroy_resources() {
 echo "Select an option:"
 echo "1) Apply Terraform and deploy Ansible playbooks"
 echo "2) Refresh inventory"
-echo "3) Deploy Report"
-echo "4) Destroy Terraform resources"
+echo "3) Destroy Terraform resources"
 read -p "Enter your choice (1-4): " choice
 
 case $choice in
     1) apply_and_deploy ;;
     2) refresh_inventory ;;
-    3) deploy_report ;;
-    4) destroy_resources ;;
+    3) destroy_resources ;;
     *) echo "Invalid option." ;;
 esac
